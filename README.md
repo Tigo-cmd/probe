@@ -14,9 +14,9 @@ serials exists, and the report says so.
 | --- | --- |
 | `crates/hwprobe` | The extraction and grading core. Independent of any GUI. |
 | `crates/hwprobe-cli` | `hwprobe`, the technician CLI and CI harness, built on the core. |
+| `apps/desktop` | The desktop app: Tauri 2 shell (`src-tauri`) and Svelte 5 frontend (`src`). |
 
-Planned, not yet in this repo: the Tauri 2 + Svelte desktop shell, the
-per-OS privileged helper (deliberately deferred: v1 needs no driver), the
+Planned, not yet in this repo: the per-OS privileged helper (deliberately deferred: v1 needs no driver), the
 local SQLite scan queue, and the sync backend.
 
 ## Using the CLI
@@ -36,6 +36,34 @@ macOS, root is needed only for the firmware password check on Intel Macs. In
 every case an unprivileged scan still runs and reports what it could not read.
 
 Exit status: `0` green, `1` amber, `2` red, `3` not graded.
+
+## The desktop app
+
+```sh
+cd apps/desktop
+npm install
+npm run tauri dev           # run against this machine
+npm run tauri build         # installers for the current OS
+npm test                    # presentation rules and wording guard
+```
+
+On Linux, building needs the WebKitGTK development packages
+(`libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev`). The app is its own Cargo
+workspace so the core crates never depend on a webview.
+
+All scanning, grading and comparison happen in Rust; the frontend only
+presents what it receives. A saved scan is re-graded on open, so its verdicts
+always come from the grader the app ships with. The report shows the headline
+and the three axes, every finding with its provenance tag and basis, the
+machine's identifiers, drives, batteries, displays and adapters, what software
+cannot assess, the standing caveats and the probe notes. It saves the raw scan
+as JSON (readable by the CLI), saves the text report, and compares this scan's
+identifiers with an earlier one to flag swapped parts.
+
+`npm run dev` with `?demo` in a plain browser shows sample data for design
+work. Production builds drop that path, so a shipped app can only display data
+read from a machine. `src/lib/fixtures/demo.json` is produced by the Rust
+grader; a test fails when it drifts.
 
 ## What the core does today
 

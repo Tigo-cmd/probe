@@ -1,0 +1,461 @@
+{
+  "scan": {
+    "schema_version": 1,
+    "tool_version": "0.1.0",
+    "os": "windows",
+    "started_at": 1791302400,
+    "duration_ms": 4210,
+    "elevated": true,
+    "identity": {
+      "vendor": {
+        "value": "LENOVO",
+        "provenance": "claimed",
+        "source": "smbios:type1.manufacturer"
+      },
+      "model": {
+        "value": "20HRCTO1WW",
+        "provenance": "claimed",
+        "source": "smbios:type1.product_name"
+      },
+      "version": {
+        "value": "ThinkPad X1 Carbon 5th",
+        "provenance": "claimed",
+        "source": "smbios:type1.version"
+      },
+      "serial": {
+        "value": "PF0ABCDE",
+        "provenance": "claimed",
+        "source": "smbios:type1.serial_number"
+      },
+      "uuid": {
+        "value": "4c4c4544-0042-3510-8051-b4c04f4e4e32",
+        "provenance": "claimed",
+        "source": "smbios:type1.uuid"
+      },
+      "board_vendor": {
+        "value": "LENOVO",
+        "provenance": "claimed",
+        "source": "smbios:type2.manufacturer"
+      },
+      "board_name": {
+        "value": "20HRCTO1WW",
+        "provenance": "claimed",
+        "source": "smbios:type2.product"
+      },
+      "board_serial": {
+        "value": "L1HF74X01AB",
+        "provenance": "claimed",
+        "source": "smbios:type2.serial_number"
+      },
+      "bios_vendor": {
+        "value": "LENOVO",
+        "provenance": "claimed",
+        "source": "smbios:type0.vendor"
+      },
+      "bios_version": {
+        "value": "N1MET70W (1.55 )",
+        "provenance": "claimed",
+        "source": "smbios:type0.version"
+      },
+      "bios_date": {
+        "value": "06/26/2023",
+        "provenance": "claimed",
+        "source": "smbios:type0.release_date"
+      },
+      "asset_tag": {
+        "value": "ACME-IT-00412",
+        "provenance": "claimed",
+        "source": "smbios:type3.asset_tag"
+      },
+      "chassis_type": {
+        "value": 10,
+        "provenance": "claimed",
+        "source": "smbios:type3.type"
+      }
+    },
+    "cpu": {
+      "brand": {
+        "value": "Intel(R) Core(TM) i7-7600U CPU @ 2.80GHz",
+        "provenance": "measured",
+        "source": "cpuid via registry"
+      },
+      "logical_cores": {
+        "value": 4,
+        "provenance": "measured",
+        "source": "GetLogicalProcessorInformationEx(RelationProcessorCore)"
+      },
+      "physical_cores": {
+        "value": 2,
+        "provenance": "measured",
+        "source": "GetLogicalProcessorInformationEx(RelationProcessorCore)"
+      }
+    },
+    "memory": {
+      "total_bytes": {
+        "value": 16995221504,
+        "provenance": "measured",
+        "source": "GlobalMemoryStatusEx",
+        "note": "usable RAM after firmware and GPU reservations, not installed RAM"
+      }
+    },
+    "batteries": [
+      {
+        "name": "BAT0",
+        "manufacturer": {
+          "value": "SMP",
+          "provenance": "claimed",
+          "source": "IOCTL_BATTERY_QUERY_INFORMATION(BatteryManufactureName)"
+        },
+        "model": {
+          "value": "01AV430",
+          "provenance": "claimed",
+          "source": "IOCTL_BATTERY_QUERY_INFORMATION(BatteryDeviceName)"
+        },
+        "serial": {
+          "value": "1174",
+          "provenance": "claimed",
+          "source": "IOCTL_BATTERY_QUERY_INFORMATION(BatterySerialNumber)"
+        },
+        "technology": {
+          "value": "LiP",
+          "provenance": "claimed",
+          "source": "IOCTL_BATTERY_QUERY_INFORMATION(BatteryInformation)"
+        },
+        "design_capacity": {
+          "value": {
+            "value": 57000,
+            "unit": "milliwatt_hours"
+          },
+          "provenance": "claimed",
+          "source": "IOCTL_BATTERY_QUERY_INFORMATION(BatteryInformation)"
+        },
+        "full_charge_capacity": {
+          "value": {
+            "value": 42180,
+            "unit": "milliwatt_hours"
+          },
+          "provenance": "measured",
+          "source": "IOCTL_BATTERY_QUERY_INFORMATION(BatteryInformation)"
+        },
+        "cycle_count": {
+          "value": 612,
+          "provenance": "measured",
+          "source": "IOCTL_BATTERY_QUERY_INFORMATION(BatteryInformation)"
+        },
+        "manufacture_date": {
+          "value": "2017-09-14",
+          "provenance": "claimed",
+          "source": "IOCTL_BATTERY_QUERY_INFORMATION(BatteryManufactureDate)"
+        }
+      }
+    ],
+    "storage": [
+      {
+        "name": "PhysicalDrive0",
+        "transport": "nvme",
+        "rotational": {
+          "value": false,
+          "provenance": "measured",
+          "source": "IOCTL_STORAGE_QUERY_PROPERTY(StorageDeviceSeekPenaltyProperty)"
+        },
+        "removable": false,
+        "model": {
+          "value": "Samsung SSD 970 EVO Plus 1TB",
+          "provenance": "claimed",
+          "source": "IOCTL_STORAGE_QUERY_PROPERTY(NVMe Identify Controller)"
+        },
+        "serial": {
+          "value": "S4EWNX0R123456",
+          "provenance": "claimed",
+          "source": "IOCTL_STORAGE_QUERY_PROPERTY(NVMe Identify Controller)"
+        },
+        "firmware": {
+          "value": "2B2QEXM7",
+          "provenance": "claimed",
+          "source": "IOCTL_STORAGE_QUERY_PROPERTY(NVMe Identify Controller)"
+        },
+        "capacity_bytes": {
+          "value": 1000204886016,
+          "provenance": "claimed",
+          "source": "IOCTL_DISK_GET_DRIVE_GEOMETRY_EX",
+          "note": "reported by the drive controller; not verified by write-then-read"
+        },
+        "health": {
+          "kind": "nvme",
+          "critical_warning": 0,
+          "temperature_kelvin": 309,
+          "available_spare": 100,
+          "available_spare_threshold": 10,
+          "percentage_used": 4,
+          "data_units_read": 31250000,
+          "data_units_written": 27340000,
+          "power_cycles": 1840,
+          "power_on_hours": 5210,
+          "unsafe_shutdowns": 63,
+          "media_errors": 0,
+          "error_log_entries": 12
+        }
+      },
+      {
+        "name": "PhysicalDrive1",
+        "transport": "usb",
+        "rotational": {
+          "value": null,
+          "provenance": "measured",
+          "source": "IOCTL_STORAGE_QUERY_PROPERTY(StorageDeviceSeekPenaltyProperty)"
+        },
+        "removable": true,
+        "model": {
+          "value": "SanDisk Ultra",
+          "provenance": "claimed",
+          "source": "IOCTL_STORAGE_QUERY_PROPERTY(StorageDeviceProperty)"
+        },
+        "serial": {
+          "value": null,
+          "provenance": "claimed",
+          "source": "IOCTL_STORAGE_QUERY_PROPERTY(StorageDeviceProperty)"
+        },
+        "firmware": {
+          "value": "1.00",
+          "provenance": "claimed",
+          "source": "IOCTL_STORAGE_QUERY_PROPERTY(StorageDeviceProperty)"
+        },
+        "capacity_bytes": {
+          "value": 30752000000,
+          "provenance": "claimed",
+          "source": "IOCTL_DISK_GET_DRIVE_GEOMETRY_EX",
+          "note": "reported by the drive controller; not verified by write-then-read"
+        },
+        "health": {
+          "kind": "unavailable",
+          "reason": "drive behind USB bridge: health data unverified"
+        }
+      }
+    ],
+    "displays": [
+      {
+        "connector": "LEN40A0",
+        "manufacturer_id": "LGD",
+        "product_code": 1133,
+        "serial": null,
+        "name": "LP140QH2-SPB1",
+        "manufacture_week": 12,
+        "manufacture_year": 2017,
+        "native_width": 2560,
+        "native_height": 1440
+      }
+    ],
+    "network": [
+      {
+        "name": "Wi-Fi",
+        "mac": "a4:34:d9:00:12:34"
+      },
+      {
+        "name": "Ethernet",
+        "mac": "54:e1:ad:00:56:78"
+      }
+    ],
+    "encumbrance": [
+      {
+        "id": "smbios_asset_tag",
+        "present": true,
+        "provenance": "claimed",
+        "source": "smbios:type3.asset_tag",
+        "detail": "SMBIOS asset tag is set (\"ACME-IT-00412\"): ex-corporate marker"
+      },
+      {
+        "id": "wpbt",
+        "present": false,
+        "provenance": "measured",
+        "source": "GetSystemFirmwareTable(ACPI, WPBT)",
+        "detail": "firmware publishes no platform binary (WPBT)"
+      },
+      {
+        "id": "mdm_enrolment",
+        "present": false,
+        "provenance": "claimed",
+        "source": "registry:HKLM\\SOFTWARE\\Microsoft\\Enrollments",
+        "detail": "no MDM enrolment recorded"
+      },
+      {
+        "id": "entra_join",
+        "present": false,
+        "provenance": "claimed",
+        "source": "registry:HKLM\\SYSTEM\\CurrentControlSet\\Control\\CloudDomainJoin\\JoinInfo",
+        "detail": "not joined to a Microsoft Entra ID tenant"
+      },
+      {
+        "id": "domain_join",
+        "present": false,
+        "provenance": "claimed",
+        "source": "NetGetJoinInformation",
+        "detail": "not joined to an Active Directory domain"
+      },
+      {
+        "id": "autopilot_profile",
+        "present": false,
+        "provenance": "claimed",
+        "source": "registry:HKLM\\SOFTWARE\\Microsoft\\Provisioning\\Diagnostics\\Autopilot",
+        "detail": "no Autopilot profile cached by this Windows installation"
+      },
+      {
+        "id": "absolute_agent",
+        "present": false,
+        "provenance": "measured",
+        "source": "registry:HKLM\\SYSTEM\\CurrentControlSet\\Services and %SystemRoot%\\System32",
+        "detail": "no Absolute (Computrace) agent components found"
+      }
+    ],
+    "probe_notes": [
+      {
+        "component": "storage/PhysicalDrive1",
+        "message": "drive behind USB bridge: health data unverified"
+      }
+    ]
+  },
+  "grade": {
+    "grader_version": "0.3.0",
+    "headline": "amber",
+    "limiting_axis": "encumbrance",
+    "complete": true,
+    "axes": [
+      {
+        "axis": "function",
+        "verdict": "green",
+        "checks": 4,
+        "findings": [
+          {
+            "component": "storage/PhysicalDrive0",
+            "verdict": "green",
+            "provenance": "measured",
+            "message": "No NVMe critical warning",
+            "basis": "critical_warning should be 0"
+          },
+          {
+            "component": "storage/PhysicalDrive0",
+            "verdict": "green",
+            "provenance": "measured",
+            "message": "0 media errors",
+            "basis": "media_errors should be 0"
+          },
+          {
+            "component": "storage/PhysicalDrive0",
+            "verdict": "green",
+            "provenance": "measured",
+            "message": "Spare blocks at 100%",
+            "basis": "available_spare above the vendor threshold"
+          },
+          {
+            "component": "storage/PhysicalDrive0",
+            "verdict": "green",
+            "provenance": "measured",
+            "message": "Drive life: about 96% remaining (vendor estimate)",
+            "basis": "wear odometer, not a health verdict"
+          },
+          {
+            "component": "storage/PhysicalDrive1",
+            "verdict": "not_graded",
+            "provenance": "not_assessable",
+            "message": "External drive behind a USB bridge: health data unverified, not graded as internal storage",
+            "basis": "SMART over USB bridges is bridge-specific and frequently broken"
+          }
+        ]
+      },
+      {
+        "axis": "battery",
+        "verdict": "amber",
+        "checks": 2,
+        "findings": [
+          {
+            "component": "battery/BAT0",
+            "verdict": "amber",
+            "provenance": "measured",
+            "message": "Holds 74% of design capacity (fair)",
+            "basis": "below the 80% line; app convention"
+          },
+          {
+            "component": "battery/BAT0",
+            "verdict": "green",
+            "provenance": "measured",
+            "message": "612 charge cycles (moderate)",
+            "basis": "Apple rates modern MacBooks at 1000 cycles; other OEMs publish no cycle rating"
+          }
+        ]
+      },
+      {
+        "axis": "encumbrance",
+        "verdict": "amber",
+        "checks": 7,
+        "findings": [
+          {
+            "component": "encumbrance/smbios_asset_tag",
+            "verdict": "amber",
+            "provenance": "claimed",
+            "message": "SMBIOS asset tag is set (\"ACME-IT-00412\"): ex-corporate marker",
+            "basis": "smbios:type3.asset_tag"
+          },
+          {
+            "component": "encumbrance/wpbt",
+            "verdict": "green",
+            "provenance": "measured",
+            "message": "firmware publishes no platform binary (WPBT)",
+            "basis": "GetSystemFirmwareTable(ACPI, WPBT)"
+          },
+          {
+            "component": "encumbrance/mdm_enrolment",
+            "verdict": "green",
+            "provenance": "claimed",
+            "message": "no MDM enrolment recorded",
+            "basis": "registry:HKLM\\SOFTWARE\\Microsoft\\Enrollments"
+          },
+          {
+            "component": "encumbrance/entra_join",
+            "verdict": "green",
+            "provenance": "claimed",
+            "message": "not joined to a Microsoft Entra ID tenant",
+            "basis": "registry:HKLM\\SYSTEM\\CurrentControlSet\\Control\\CloudDomainJoin\\JoinInfo"
+          },
+          {
+            "component": "encumbrance/domain_join",
+            "verdict": "green",
+            "provenance": "claimed",
+            "message": "not joined to an Active Directory domain",
+            "basis": "NetGetJoinInformation"
+          },
+          {
+            "component": "encumbrance/autopilot_profile",
+            "verdict": "green",
+            "provenance": "claimed",
+            "message": "no Autopilot profile cached by this Windows installation",
+            "basis": "registry:HKLM\\SOFTWARE\\Microsoft\\Provisioning\\Diagnostics\\Autopilot"
+          },
+          {
+            "component": "encumbrance/absolute_agent",
+            "verdict": "green",
+            "provenance": "measured",
+            "message": "no Absolute (Computrace) agent components found",
+            "basis": "registry:HKLM\\SYSTEM\\CurrentControlSet\\Services and %SystemRoot%\\System32"
+          }
+        ]
+      }
+    ],
+    "caveats": [
+      "Single snapshot: confidence is limited. A second scan days later materially raises confidence.",
+      "Model, serial and capacity labels are read from rewritable firmware and are claims, not measurements.",
+      "In a large field study (Google, FAST 2007) about 36% of drives that failed showed zero SMART error counts beforehand. A clean storage result lowers risk; it does not clear the drive.",
+      "Battery health comes from the pack's own fuel gauge, which can be miscalibrated or reset. Swelling cannot be detected in software: check the case for bulging.",
+      "This report does not and cannot determine whether the laptop is stolen. No public register of laptop serials exists."
+    ],
+    "not_assessable": [
+      "Battery swelling",
+      "Hinge, chassis and screw wear",
+      "Liquid-damage history",
+      "Keyboard actuation feel",
+      "Undervolt or overclock history",
+      "GPU mining or reball history",
+      "Firmware (BIOS/UEFI) supervisor password",
+      "Cloud registration held by the vendor (Windows Autopilot, Apple Business Manager)",
+      "Theft status"
+    ]
+  }
+}

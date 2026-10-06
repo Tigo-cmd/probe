@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
 members = ["crates/hwprobe", "crates/hwprobe-cli"]
+# The desktop shell is its own workspace: building it needs a webview
+# toolchain the core crates must not depend on.
+exclude = ["apps/desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"

@@ -1,0 +1,146 @@
+/* Design tokens. Verdict colours always come with a text label: colour is
+   never the only carrier of a result. No web fonts: the app runs offline. */
+
+:root {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --border: #e1e4ea;
+  --text: #17202a;
+  --text-2: #4b5563;
+  --text-3: #6b7280;
+  --accent: #1d2a36;
+  --accent-text: #ffffff;
+  --focus: #2563eb;
+
+  --green: #1f8a5b;
+  --green-bg: #e7f5ee;
+  --amber: #a5660b;
+  --amber-bg: #fdf3e2;
+  --red: #c0352c;
+  --red-bg: #fbebea;
+  --grey: #5b6472;
+  --grey-bg: #eef0f3;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0f1419;
+    --surface: #171d24;
+    --surface-2: #1c232b;
+    --border: #2a333d;
+    --text: #e8ebef;
+    --text-2: #b4bcc6;
+    --text-3: #8b95a1;
+    --accent: #e8ebef;
+    --accent-text: #0f1419;
+    --focus: #60a5fa;
+
+    --green: #4cc38a;
+    --green-bg: #12291f;
+    --amber: #e8a948;
+    --amber-bg: #2e2412;
+    --red: #f07a70;
+    --red-bg: #321816;
+    --grey: #a2abb6;
+    --grey-bg: #222a33;
+    --shadow: none;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 7px 14px;
+  font-weight: 550;
+  transition: background 120ms, border-color 120ms;
+}
+
+button:hover {
+  background: var(--surface-2);
+  border-color: var(--text-3);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+button.primary:hover {
+  opacity: 0.9;
+}
+
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.92em;
+}
+
+.muted {
+  color: var(--text-2);
+}
+
+.faint {
+  color: var(--text-3);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
