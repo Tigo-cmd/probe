@@ -1,0 +1,14 @@
+[package]
+name = "hwprobe"
+description = "Hardware extraction and condition grading core for laptop verification"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc.workspace = true

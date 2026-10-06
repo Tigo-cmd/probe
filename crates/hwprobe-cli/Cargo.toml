@@ -1,0 +1,16 @@
+[package]
+name = "hwprobe-cli"
+description = "Command-line technician tool for hwprobe"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "hwprobe"
+path = "src/main.rs"
+
+[dependencies]
+hwprobe = { path = "../hwprobe" }
+serde.workspace = true
+serde_json.workspace = true
