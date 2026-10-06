@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::*;
 
-pub const GRADER_VERSION: &str = "0.1.0";
+pub const GRADER_VERSION: &str = "0.2.0";
 
 /// Ordered from best to worst so `max()` picks the limiting factor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -79,6 +79,8 @@ pub const NOT_ASSESSABLE: &[&str] = &[
     "Keyboard actuation feel",
     "Undervolt or overclock history",
     "GPU mining or reball history",
+    "Firmware (BIOS/UEFI) supervisor password",
+    "Cloud registration held by the vendor (Windows Autopilot, Apple Business Manager)",
     "Theft status",
 ];
 
@@ -481,16 +483,30 @@ fn battery_findings(b: &Battery, out: &mut Vec<Finding>) {
 
 // ------------------------------------------------------------- encumbrance
 
+/// How much a present encumbrance signal limits the buyer.
+///
+/// Red: someone else can lock, wipe, track or re-enrol the machine.
+/// Amber: an ex-corporate marker or firmware-carried software that the seller
+/// should explain, but that does not by itself stop the buyer using it.
+/// Unknown signal ids are Red, so a new signal is never silently waved through.
+fn encumbrance_severity(id: &str) -> Verdict {
+    use crate::backend::signals::*;
+    match id {
+        ASSET_TAG | WPBT | DOMAIN_JOIN => Verdict::Amber,
+        MDM_ENROLMENT | ENTRA_JOIN | AUTOPILOT_PROFILE | ABSOLUTE_AGENT => Verdict::Red,
+        _ => Verdict::Red,
+    }
+}
+
 fn encumbrance_axis(scan: &Scan) -> AxisGrade {
     let findings = scan
         .encumbrance
         .iter()
         .map(|s| {
-            let verdict = match (s.present, s.id.as_str()) {
-                (false, _) => Verdict::Green,
-                // Ex-corporate markers mean "confirm decommissioning", not "locked".
-                (true, "smbios_asset_tag") => Verdict::Amber,
-                (true, _) => Verdict::Red,
+            let verdict = if s.present {
+                encumbrance_severity(&s.id)
+            } else {
+                Verdict::Green
             };
             finding(
                 &format!("encumbrance/{}", s.id),
@@ -502,15 +518,15 @@ fn encumbrance_axis(scan: &Scan) -> AxisGrade {
         })
         .collect::<Vec<_>>();
     let mut grade = axis(Axis::Encumbrance, findings);
-    // On Linux the strong signals (Autopilot, MDM, Activation Lock, Absolute)
-    // are not visible, so a clean result here is not a cleared machine.
+    // On Linux the strong signals (management enrolment, Autopilot, Absolute's
+    // agent) are not visible, so a clean result here is not a cleared machine.
     if scan.os == "linux" && grade.verdict == Verdict::Green {
         grade.verdict = Verdict::NotGraded;
         grade.findings.push(finding(
             "encumbrance",
             Verdict::NotGraded,
             Provenance::NotAssessable,
-            "Management enrolment, firmware passwords and Absolute persistence cannot be read from Linux".into(),
+            "Management enrolment, Autopilot profiles and installed tracking agents cannot be read from Linux".into(),
             "run the scan from the machine's installed Windows or macOS",
         ));
     }
@@ -714,5 +730,63 @@ mod tests {
             axis_of(&grade(&s), Axis::Encumbrance).verdict,
             Verdict::Amber
         );
+    }
+
+    fn signal(id: &str, present: bool) -> EncumbranceSignal {
+        EncumbranceSignal {
+            id: id.into(),
+            present,
+            provenance: Provenance::Claimed,
+            source: "test".into(),
+            detail: id.into(),
+        }
+    }
+
+    #[test]
+    fn management_is_red_and_markers_amber() {
+        use crate::backend::signals::*;
+        let v = |sigs: Vec<EncumbranceSignal>| {
+            let mut s = scan(vec![], vec![]);
+            s.encumbrance = sigs;
+            axis_of(&grade(&s), Axis::Encumbrance).verdict
+        };
+        let clean = || {
+            [
+                ASSET_TAG,
+                WPBT,
+                MDM_ENROLMENT,
+                ENTRA_JOIN,
+                DOMAIN_JOIN,
+                AUTOPILOT_PROFILE,
+                ABSOLUTE_AGENT,
+            ]
+            .map(|id| signal(id, false))
+            .to_vec()
+        };
+        assert_eq!(v(clean()), Verdict::Green);
+        for (id, expected) in [
+            (ASSET_TAG, Verdict::Amber),
+            (WPBT, Verdict::Amber),
+            (DOMAIN_JOIN, Verdict::Amber),
+            (MDM_ENROLMENT, Verdict::Red),
+            (ENTRA_JOIN, Verdict::Red),
+            (AUTOPILOT_PROFILE, Verdict::Red),
+            (ABSOLUTE_AGENT, Verdict::Red),
+            ("some_future_signal", Verdict::Red),
+        ] {
+            let mut sigs = clean();
+            sigs.push(signal(id, true));
+            assert_eq!(v(sigs), expected, "{id}");
+        }
+    }
+
+    #[test]
+    fn clean_windows_still_lists_what_it_cannot_see() {
+        let g = grade(&scan(vec![], vec![]));
+        assert!(g.not_assessable.iter().any(|n| n.contains("Autopilot")));
+        assert!(g
+            .not_assessable
+            .iter()
+            .any(|n| n.contains("supervisor password")));
     }
 }

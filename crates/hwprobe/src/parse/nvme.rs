@@ -23,6 +23,37 @@ pub fn parse_health_log(buf: &[u8]) -> Result<NvmeHealth, ParseError> {
     })
 }
 
+pub const IDENTIFY_LEN: usize = 4096;
+
+/// Serial, model and firmware revision from an Identify Controller data
+/// structure (CNS 01h): the strings Linux exposes in sysfs, so drive serials
+/// compare across operating systems.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ControllerStrings {
+    pub serial: Option<String>,
+    pub model: Option<String>,
+    pub firmware: Option<String>,
+}
+
+pub fn parse_identify_controller(buf: &[u8]) -> Result<ControllerStrings, ParseError> {
+    require_len(buf, 72)?;
+    let ascii = |raw: &[u8]| {
+        let s = raw
+            .iter()
+            .take_while(|&&b| b != 0)
+            .filter(|b| b.is_ascii_graphic() || **b == b' ')
+            .map(|&b| b as char)
+            .collect::<String>();
+        let s = s.trim().to_string();
+        (!s.is_empty()).then_some(s)
+    };
+    Ok(ControllerStrings {
+        serial: ascii(&buf[4..24]),
+        model: ascii(&buf[24..64]),
+        firmware: ascii(&buf[64..72]),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -66,5 +97,18 @@ mod tests {
                 got: 100
             })
         );
+    }
+
+    #[test]
+    fn parses_identify_strings() {
+        let mut id = [0u8; IDENTIFY_LEN];
+        id[4..24].copy_from_slice(b"S4EWNX0R123456      ");
+        id[24..64].copy_from_slice(b"Samsung SSD 970 EVO Plus 1TB            ");
+        id[64..72].copy_from_slice(b"2B2QEXM7");
+        let c = parse_identify_controller(&id).unwrap();
+        assert_eq!(c.serial.as_deref(), Some("S4EWNX0R123456"));
+        assert_eq!(c.model.as_deref(), Some("Samsung SSD 970 EVO Plus 1TB"));
+        assert_eq!(c.firmware.as_deref(), Some("2B2QEXM7"));
+        assert!(parse_identify_controller(&id[..40]).is_err());
     }
 }

@@ -17,7 +17,7 @@ serials exists, and the report says so.
 
 Planned, not yet in this repo: the Tauri 2 + Svelte desktop shell, the
 per-OS privileged helper (deliberately deferred: v1 needs no driver), the
-Windows and macOS backends, the local SQLite scan queue, and the sync backend.
+macOS backend, the local SQLite scan queue, and the sync backend.
 
 ## Using the CLI
 
@@ -29,8 +29,10 @@ sudo ./target/release/hwprobe scan -o scan.json
 ./target/release/hwprobe diff old.json new.json  # fingerprint divergence
 ```
 
-Root (administrator) is needed for serials, the SMBIOS UUID and drive health.
-Without it the scan still runs and reports those fields as not read.
+Root is needed on Linux for serials, the SMBIOS UUID, drive health and the
+ACPI tables. On Windows, run from an administrator prompt for drive health and
+NVMe serials; identity, battery and encumbrance reads work without it. Either
+way an unprivileged scan still runs and reports what it could not read.
 
 Exit status: `0` green, `1` amber, `2` red, `3` not graded.
 
@@ -43,9 +45,22 @@ Exit status: `0` green, `1` amber, `2` red, `3` not graded.
   strings rejected), CPU and RAM from procfs, battery capacity and cycles from
   `power_supply`, EDID panel identity, physical NIC MACs, NVMe health via the
   admin Get Log Page ioctl, SATA SMART via SG_IO ATA pass-through. Drives behind
-  USB bridges are labelled and never graded as internal.
-- **Parsers** (`parse/`). NVMe health log, ATA SMART attribute table, EDID base
-  block. Pure functions over untrusted bytes that reject rather than panic.
+  USB bridges are labelled and never graded as internal. Reads the ACPI WPBT.
+- **Windows backend** (`backend/windows.rs`). No WMI, COM or driver. SMBIOS
+  from the raw firmware table, storage descriptors and NVMe health and
+  Identify through `IOCTL_STORAGE_QUERY_PROPERTY`, SATA SMART through
+  `SMART_RCV_DRIVE_DATA`, the battery class IOCTLs, monitor EDID through
+  SetupAPI, burned-in MACs of hardware adapters from IP Helper. NVMe serials
+  come from Identify Controller so they match what Linux reports.
+- **Encumbrance signals** (`backend/signals.rs`). SMBIOS asset tag and WPBT on
+  both OSes; on Windows also MDM enrolment, Microsoft Entra ID join, Active
+  Directory join, cached Autopilot profile and the Absolute (Computrace) agent.
+  Reports name the organisation, never the previous user. A check that could
+  not be read emits a probe note and no signal; it is never a clean result.
+- **Parsers** (`parse/`). NVMe health log and Identify, ATA SMART attribute
+  table, EDID base block, SMBIOS structure table, ACPI WPBT, and the Windows
+  storage, battery and processor query buffers. Pure functions over untrusted
+  bytes that reject rather than panic, tested on every OS.
 - **Grader** (`grade.rs`, versioned as `GRADER_VERSION`). Three axes (function,
   battery, encumbrance); the headline is the worst axis, never an average.
   Every finding carries the rule's evidence basis. Storage uses the five
@@ -53,7 +68,10 @@ Exit status: `0` green, `1` amber, `2` red, `3` not graded.
   spare and wear. Battery uses state of health against design capacity and
   cycle count, and treats `cycle_count == 0` and full charge exactly equal to
   design as *not reported*. Host-writes-versus-power-on-hours plausibility is
-  flagged as an inferred signal.
+  flagged as an inferred signal. Encumbrance: management enrolment, Entra ID
+  join, Autopilot profile and Absolute agent are red; asset tag, WPBT and
+  domain join are amber; an unknown signal is red. A clean Linux encumbrance
+  result is not graded, because the strong signals are not visible there.
 - **Fingerprint** (`fingerprint.rs`). Composite of SMBIOS UUID, board and system
   serial, drive and battery serials, and MACs. Divergence between scans is the
   tamper signal.

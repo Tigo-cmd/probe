@@ -9,7 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use super::is_placeholder;
+use super::{is_placeholder, signals};
 use crate::model::*;
 use crate::parse;
 
@@ -66,7 +66,7 @@ impl LinuxBackend {
             storage: self.storage(&mut notes),
             displays: self.displays(&mut notes),
             network: self.network(),
-            encumbrance: encumbrance(&identity),
+            encumbrance: self.encumbrance(&identity, &mut notes),
             identity,
             ..Scan::default()
         };
@@ -389,6 +389,33 @@ impl LinuxBackend {
         out
     }
 
+    /// Encumbrance signals readable on Linux: the asset tag and the firmware's
+    /// platform binary table. Management enrolment and firmware passwords
+    /// live in Windows, macOS and vendor firmware and are not visible here.
+    fn encumbrance(
+        &self,
+        identity: &Identity,
+        notes: &mut Vec<ProbeNote>,
+    ) -> Vec<EncumbranceSignal> {
+        let mut out = vec![signals::asset_tag(identity)];
+        let path = self.sys.join("firmware/acpi/tables/WPBT");
+        let read = match fs::read(&path) {
+            Ok(b) => Ok(Some(b)),
+            // Without the tables directory there is no ACPI view at all, so a
+            // missing WPBT file proves nothing.
+            Err(_) if !path.parent().is_some_and(Path::exists) => {
+                Err("ACPI tables not exposed by this kernel: WPBT not checked".to_string())
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                Err("ACPI tables require root: WPBT not checked".to_string())
+            }
+            Err(e) => Err(format!("{}: {e}", path.display())),
+        };
+        out.extend(super::wpbt_signal(read, &source(&path), notes));
+        out
+    }
+
     fn network(&self) -> Vec<NetworkInterface> {
         list_dir(&self.sys.join("class/net"))
             .into_iter()
@@ -403,23 +430,6 @@ impl LinuxBackend {
             })
             .collect()
     }
-}
-
-/// Encumbrance signals readable on Linux. The strong ones (Autopilot, MDM
-/// enrolment, Activation Lock, Absolute persistence) live in Windows, macOS
-/// and firmware and are not visible from here.
-fn encumbrance(identity: &Identity) -> Vec<EncumbranceSignal> {
-    let tag = identity.asset_tag.get();
-    vec![EncumbranceSignal {
-        id: "smbios_asset_tag".into(),
-        present: tag.is_some(),
-        provenance: Provenance::Claimed,
-        source: identity.asset_tag.source.clone(),
-        detail: match tag {
-            Some(t) => format!("SMBIOS asset tag is set ({t:?}): ex-corporate marker"),
-            None => "no SMBIOS asset tag".into(),
-        },
-    }]
 }
 
 mod ioctl {
@@ -693,6 +703,7 @@ mod tests {
         t.put("sys/class/power_supply/hidpp_battery_0/type", "Battery\n");
         t.put("sys/class/power_supply/hidpp_battery_0/scope", "Device\n");
         t.put("sys/class/power_supply/AC/type", "Mains\n");
+        t.put("sys/firmware/acpi/tables/DSDT", "");
 
         let scan = LinuxBackend::with_root(&t.0).scan();
 
@@ -730,6 +741,12 @@ mod tests {
         let tag = &scan.encumbrance[0];
         assert!(tag.present);
         assert!(tag.detail.contains("ACME-IT-00412"));
+        assert!(
+            scan.encumbrance
+                .iter()
+                .any(|s| s.id == "wpbt" && !s.present),
+            "no WPBT file means no table"
+        );
     }
 
     #[test]
@@ -755,5 +772,25 @@ mod tests {
             })
         );
         assert_eq!(b.full_charge_capacity.value.unwrap().value, 44_400);
+    }
+
+    #[test]
+    fn wpbt_is_read_from_acpi_tables() {
+        let t = Tree::new("wpbt");
+        let wpbt = |scan: &Scan| scan.encumbrance.iter().find(|s| s.id == "wpbt").cloned();
+
+        let scan = LinuxBackend::with_root(&t.0).scan();
+        assert_eq!(wpbt(&scan), None, "no ACPI view is not a clean result");
+        assert!(scan
+            .probe_notes
+            .iter()
+            .any(|n| n.component == "encumbrance/wpbt"));
+
+        let p = t.0.join("sys/firmware/acpi/tables/WPBT");
+        fs::create_dir_all(p.parent().unwrap()).unwrap();
+        fs::write(&p, crate::parse::acpi::tests::sample()).unwrap();
+        let signal = wpbt(&LinuxBackend::with_root(&t.0).scan()).unwrap();
+        assert!(signal.present);
+        assert!(signal.detail.contains("LENOVO"));
     }
 }

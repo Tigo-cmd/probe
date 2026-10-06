@@ -4,9 +4,12 @@
 //! produce an error or a partial result, never a panic. Every parser is pure
 //! so it can be fuzzed and tested against captured fixtures.
 
+pub mod acpi;
 pub mod ata;
 pub mod edid;
 pub mod nvme;
+pub mod smbios;
+pub mod winioctl;
 
 use std::fmt;
 
