@@ -18,6 +18,9 @@ pub const ENTRA_JOIN: &str = "entra_join";
 pub const DOMAIN_JOIN: &str = "domain_join";
 pub const AUTOPILOT_PROFILE: &str = "autopilot_profile";
 pub const ABSOLUTE_AGENT: &str = "absolute_agent";
+pub const ACTIVATION_LOCK: &str = "activation_lock";
+pub const AUTOMATED_ENROLMENT: &str = "automated_device_enrolment";
+pub const FIRMWARE_PASSWORD: &str = "firmware_password";
 
 fn signal(
     id: &str,
@@ -188,6 +191,76 @@ pub fn absolute_agent(found: &[String], source: &str) -> EncumbranceSignal {
     )
 }
 
+/// How Activation Lock stands on a Mac.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActivationLock {
+    Enabled,
+    Disabled,
+    /// The Mac has neither a T2 chip nor Apple silicon, so it cannot be locked.
+    Unsupported,
+}
+
+pub fn activation_lock(state: ActivationLock, source: &str) -> EncumbranceSignal {
+    signal(
+        ACTIVATION_LOCK,
+        state == ActivationLock::Enabled,
+        Provenance::Measured,
+        source,
+        match state {
+            ActivationLock::Enabled => "Activation Lock is on: the Mac is tied to the seller's Apple Account and cannot be set up after an erase without it".into(),
+            ActivationLock::Disabled => "Activation Lock is off".into(),
+            ActivationLock::Unsupported => "this Mac predates Activation Lock (no T2 chip or Apple silicon)".into(),
+        },
+    )
+}
+
+/// `enrolled` is whether macOS reports it was enrolled through Automated
+/// Device Enrollment (Apple Business or School Manager, formerly DEP).
+pub fn automated_enrolment(enrolled: bool, source: &str) -> EncumbranceSignal {
+    signal(
+        AUTOMATED_ENROLMENT,
+        enrolled,
+        Provenance::Claimed,
+        source,
+        if enrolled {
+            "enrolled through Automated Device Enrollment: the Mac re-enrols into its organisation after an erase".into()
+        } else {
+            "not enrolled through Automated Device Enrollment".into()
+        },
+    )
+}
+
+/// The MDM state as macOS reports it, e.g. "Yes (User Approved)".
+pub fn mdm_status(enrolled: bool, status: &str, source: &str) -> EncumbranceSignal {
+    signal(
+        MDM_ENROLMENT,
+        enrolled,
+        Provenance::Claimed,
+        source,
+        if enrolled {
+            format!(
+                "enrolled in device management ({status}): the organisation can lock or wipe it"
+            )
+        } else {
+            "no MDM enrolment recorded".into()
+        },
+    )
+}
+
+pub fn firmware_password(set: bool, source: &str) -> EncumbranceSignal {
+    signal(
+        FIRMWARE_PASSWORD,
+        set,
+        Provenance::Measured,
+        source,
+        if set {
+            "a firmware password is set: the Mac cannot boot other media or be reinstalled without it".into()
+        } else {
+            "no firmware password".into()
+        },
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -225,6 +298,12 @@ mod tests {
         assert!(!absolute_agent(&[], "t").present);
         assert!(!wpbt(None, "t").present);
         assert!(!asset_tag(&Identity::default()).present);
+        assert!(!activation_lock(ActivationLock::Disabled, "t").present);
+        assert!(!activation_lock(ActivationLock::Unsupported, "t").present);
+        assert!(activation_lock(ActivationLock::Enabled, "t").present);
+        assert!(!automated_enrolment(false, "t").present);
+        assert!(!mdm_status(false, "No", "t").present);
+        assert!(!firmware_password(false, "t").present);
     }
 
     #[test]

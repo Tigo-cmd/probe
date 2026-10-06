@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::*;
 
-pub const GRADER_VERSION: &str = "0.2.0";
+pub const GRADER_VERSION: &str = "0.3.0";
 
 /// Ordered from best to worst so `max()` picks the limiting factor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -493,7 +493,8 @@ fn encumbrance_severity(id: &str) -> Verdict {
     use crate::backend::signals::*;
     match id {
         ASSET_TAG | WPBT | DOMAIN_JOIN => Verdict::Amber,
-        MDM_ENROLMENT | ENTRA_JOIN | AUTOPILOT_PROFILE | ABSOLUTE_AGENT => Verdict::Red,
+        MDM_ENROLMENT | ENTRA_JOIN | AUTOPILOT_PROFILE | ABSOLUTE_AGENT | ACTIVATION_LOCK
+        | AUTOMATED_ENROLMENT | FIRMWARE_PASSWORD => Verdict::Red,
         _ => Verdict::Red,
     }
 }
@@ -528,6 +529,24 @@ fn encumbrance_axis(scan: &Scan) -> AxisGrade {
             Provenance::NotAssessable,
             "Management enrolment, Autopilot profiles and installed tracking agents cannot be read from Linux".into(),
             "run the scan from the machine's installed Windows or macOS",
+        ));
+    }
+    // Activation Lock is the decisive signal on a Mac. If it could not be
+    // read on hardware that supports it, a clean result proves nothing.
+    if scan.os == "macos"
+        && grade.verdict == Verdict::Green
+        && !scan
+            .encumbrance
+            .iter()
+            .any(|s| s.id == crate::backend::signals::ACTIVATION_LOCK)
+    {
+        grade.verdict = Verdict::NotGraded;
+        grade.findings.push(finding(
+            "encumbrance/activation_lock",
+            Verdict::NotGraded,
+            Provenance::NotAssessable,
+            "Activation Lock state could not be read".into(),
+            "check System Settings > General > About, or ask the seller to sign out of their Apple Account",
         ));
     }
     grade
@@ -772,6 +791,9 @@ mod tests {
             (ENTRA_JOIN, Verdict::Red),
             (AUTOPILOT_PROFILE, Verdict::Red),
             (ABSOLUTE_AGENT, Verdict::Red),
+            (ACTIVATION_LOCK, Verdict::Red),
+            (AUTOMATED_ENROLMENT, Verdict::Red),
+            (FIRMWARE_PASSWORD, Verdict::Red),
             ("some_future_signal", Verdict::Red),
         ] {
             let mut sigs = clean();
@@ -788,5 +810,22 @@ mod tests {
             .not_assessable
             .iter()
             .any(|n| n.contains("supervisor password")));
+    }
+
+    #[test]
+    fn mac_without_activation_lock_reading_is_not_cleared() {
+        use crate::backend::signals::*;
+        let mut s = scan(vec![], vec![]);
+        s.os = "macos".into();
+        s.encumbrance = vec![signal(MDM_ENROLMENT, false)];
+        assert_eq!(
+            axis_of(&grade(&s), Axis::Encumbrance).verdict,
+            Verdict::NotGraded
+        );
+        s.encumbrance.push(signal(ACTIVATION_LOCK, false));
+        assert_eq!(
+            axis_of(&grade(&s), Axis::Encumbrance).verdict,
+            Verdict::Green
+        );
     }
 }

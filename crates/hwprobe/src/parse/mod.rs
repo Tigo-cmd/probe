@@ -8,6 +8,7 @@ pub mod acpi;
 pub mod ata;
 pub mod edid;
 pub mod nvme;
+pub mod plist;
 pub mod smbios;
 pub mod winioctl;
 

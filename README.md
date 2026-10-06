@@ -17,7 +17,7 @@ serials exists, and the report says so.
 
 Planned, not yet in this repo: the Tauri 2 + Svelte desktop shell, the
 per-OS privileged helper (deliberately deferred: v1 needs no driver), the
-macOS backend, the local SQLite scan queue, and the sync backend.
+local SQLite scan queue, and the sync backend.
 
 ## Using the CLI
 
@@ -32,7 +32,8 @@ sudo ./target/release/hwprobe scan -o scan.json
 Root is needed on Linux for serials, the SMBIOS UUID, drive health and the
 ACPI tables. On Windows, run from an administrator prompt for drive health and
 NVMe serials; identity, battery and encumbrance reads work without it. Either
-way an unprivileged scan still runs and reports what it could not read.
+way an unprivileged scan still runs. On macOS, root is needed only for the
+firmware password check on Intel Macs. In every case an unprivileged scan runs and reports what it could not read.
 
 Exit status: `0` green, `1` amber, `2` red, `3` not graded.
 
@@ -52,13 +53,22 @@ Exit status: `0` green, `1` amber, `2` red, `3` not graded.
   `SMART_RCV_DRIVE_DATA`, the battery class IOCTLs, monitor EDID through
   SetupAPI, burned-in MACs of hardware adapters from IP Helper. NVMe serials
   come from Identify Controller so they match what Linux reports.
+- **macOS backend** (`backend/macos.rs`). Uses only tools that ship with
+  macOS: `ioreg -a`, `system_profiler -xml`, `profiles`, `firmwarepasswd` and
+  `sysctl`. Identity from the platform expert, battery from AppleSmartBattery
+  (on Apple silicon `MaxCapacity` is a percentage and is never graded as a
+  capacity), drives, burned-in MACs and EDID. macOS exposes only a pass/fail
+  SMART summary, so Mac drives are listed but not graded. All interpretation
+  is pure and tested on every OS; only a small `sys` module runs commands.
 - **Encumbrance signals** (`backend/signals.rs`). SMBIOS asset tag and WPBT on
   both OSes; on Windows also MDM enrolment, Microsoft Entra ID join, Active
-  Directory join, cached Autopilot profile and the Absolute (Computrace) agent.
+  Directory join, cached Autopilot profile and the Absolute (Computrace) agent;
+  on macOS Activation Lock, Automated Device Enrollment, MDM enrolment and the
+  Intel firmware password.
   Reports name the organisation, never the previous user. A check that could
   not be read emits a probe note and no signal; it is never a clean result.
 - **Parsers** (`parse/`). NVMe health log and Identify, ATA SMART attribute
-  table, EDID base block, SMBIOS structure table, ACPI WPBT, and the Windows
+  table, XML property lists, EDID base block, SMBIOS structure table, ACPI WPBT, and the Windows
   storage, battery and processor query buffers. Pure functions over untrusted
   bytes that reject rather than panic, tested on every OS.
 - **Grader** (`grade.rs`, versioned as `GRADER_VERSION`). Three axes (function,
@@ -69,9 +79,11 @@ Exit status: `0` green, `1` amber, `2` red, `3` not graded.
   cycle count, and treats `cycle_count == 0` and full charge exactly equal to
   design as *not reported*. Host-writes-versus-power-on-hours plausibility is
   flagged as an inferred signal. Encumbrance: management enrolment, Entra ID
-  join, Autopilot profile and Absolute agent are red; asset tag, WPBT and
+  join, Autopilot profile, Absolute agent, Activation Lock, Automated Device
+  Enrollment and firmware password are red; asset tag, WPBT and
   domain join are amber; an unknown signal is red. A clean Linux encumbrance
-  result is not graded, because the strong signals are not visible there.
+  result is not graded, because the strong signals are not visible there; nor
+  is a clean Mac whose Activation Lock state could not be read.
 - **Fingerprint** (`fingerprint.rs`). Composite of SMBIOS UUID, board and system
   serial, drive and battery serials, and MACs. Divergence between scans is the
   tamper signal.

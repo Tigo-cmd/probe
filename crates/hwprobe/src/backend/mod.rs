@@ -6,14 +6,18 @@
 
 #[cfg(target_os = "linux")]
 pub mod linux;
+#[cfg(any(target_os = "macos", test))]
+pub mod macos;
 pub mod signals;
 #[cfg(windows)]
 pub mod windows;
 
 use crate::model::{EncumbranceSignal, ProbeNote, Scan};
 
-// Used only by the Linux and Windows backends until the macOS backend lands.
-#[cfg_attr(not(any(target_os = "linux", windows)), allow(dead_code))]
+#[cfg_attr(
+    not(any(target_os = "linux", target_os = "macos", windows)),
+    allow(dead_code)
+)]
 /// Placeholder strings that OEMs leave in SMBIOS fields. These carry no
 /// information and must not be treated as identifiers.
 const PLACEHOLDERS: &[&str] = &[
@@ -39,7 +43,10 @@ const PLACEHOLDERS: &[&str] = &[
     "ffffffff-ffff-ffff-ffff-ffffffffffff",
 ];
 
-#[cfg_attr(not(any(target_os = "linux", windows)), allow(dead_code))]
+#[cfg_attr(
+    not(any(target_os = "linux", target_os = "macos", windows)),
+    allow(dead_code)
+)]
 pub(crate) fn is_placeholder(s: &str) -> bool {
     let t = s.trim().to_ascii_lowercase();
     t.is_empty() || PLACEHOLDERS.contains(&t.as_str()) || t.chars().all(|c| c == 'x' || c == '0')
@@ -88,13 +95,17 @@ pub fn scan() -> Scan {
     {
         windows::WindowsBackend::system().scan()
     }
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(target_os = "macos")]
+    {
+        macos::MacBackend::system().scan()
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     {
         unsupported()
     }
 }
 
-#[cfg(not(any(target_os = "linux", windows)))]
+#[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
 fn unsupported() -> Scan {
     use crate::model::SCAN_SCHEMA_VERSION;
     Scan {
