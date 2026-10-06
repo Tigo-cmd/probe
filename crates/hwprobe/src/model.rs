@@ -230,13 +230,61 @@ pub struct NvmeHealth {
     /// Vendor estimate of life used; may legitimately exceed 100.
     pub percentage_used: u8,
     /// In units of 1000 × 512 bytes.
+    #[serde(with = "u128_counter")]
     pub data_units_read: u128,
+    #[serde(with = "u128_counter")]
     pub data_units_written: u128,
+    #[serde(with = "u128_counter")]
     pub power_cycles: u128,
+    #[serde(with = "u128_counter")]
     pub power_on_hours: u128,
+    #[serde(with = "u128_counter")]
     pub unsafe_shutdowns: u128,
+    #[serde(with = "u128_counter")]
     pub media_errors: u128,
+    #[serde(with = "u128_counter")]
     pub error_log_entries: u128,
+}
+
+/// NVMe counters are 128-bit, but a scan is often read back through an
+/// internally tagged enum ([`DriveHealth`]), where serde cannot buffer u128.
+/// Counters are written as plain numbers when they fit in u64 (always, in
+/// practice) and as decimal strings otherwise; both forms read back.
+mod u128_counter {
+    use serde::de::{self, Visitor};
+    use serde::{Deserializer, Serializer};
+    use std::fmt;
+
+    pub fn serialize<S: Serializer>(v: &u128, s: S) -> Result<S::Ok, S::Error> {
+        match u64::try_from(*v) {
+            Ok(small) => s.serialize_u64(small),
+            Err(_) => s.serialize_str(&v.to_string()),
+        }
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u128, D::Error> {
+        struct Counter;
+        impl Visitor<'_> for Counter {
+            type Value = u128;
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("a non-negative integer or decimal string")
+            }
+            fn visit_u64<E: de::Error>(self, v: u64) -> Result<u128, E> {
+                Ok(v as u128)
+            }
+            fn visit_u128<E: de::Error>(self, v: u128) -> Result<u128, E> {
+                Ok(v)
+            }
+            fn visit_i64<E: de::Error>(self, v: i64) -> Result<u128, E> {
+                u128::try_from(v).map_err(|_| E::custom("negative counter"))
+            }
+            fn visit_str<E: de::Error>(self, v: &str) -> Result<u128, E> {
+                v.parse()
+                    .map_err(|_| E::custom("counter is not a decimal integer"))
+            }
+        }
+        d.deserialize_any(Counter)
+    }
 }
 
 impl NvmeHealth {
@@ -314,4 +362,41 @@ pub struct EncumbranceSignal {
 pub struct ProbeNote {
     pub component: String,
     pub message: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A saved scan must load back, whatever its drives reported.
+    #[test]
+    fn nvme_scans_round_trip_through_json() {
+        let health = NvmeHealth {
+            data_units_written: 27_340_000,
+            power_on_hours: 5_210,
+            media_errors: u128::MAX,
+            ..NvmeHealth::default()
+        };
+        let scan = Scan {
+            storage: vec![Drive {
+                name: "nvme0n1".into(),
+                transport: Transport::Nvme,
+                rotational: Field::default(),
+                removable: false,
+                model: Field::default(),
+                serial: Field::default(),
+                firmware: Field::default(),
+                capacity_bytes: Field::default(),
+                health: DriveHealth::Nvme(health),
+            }],
+            ..Scan::default()
+        };
+        let text = serde_json::to_string(&scan).unwrap();
+        assert!(
+            text.contains("\"power_on_hours\":5210"),
+            "small counters stay numbers"
+        );
+        let back: Scan = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, scan);
+    }
 }
