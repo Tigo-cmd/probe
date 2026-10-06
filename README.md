@@ -31,9 +31,9 @@ sudo ./target/release/hwprobe scan -o scan.json
 
 Root is needed on Linux for serials, the SMBIOS UUID, drive health and the
 ACPI tables. On Windows, run from an administrator prompt for drive health and
-NVMe serials; identity, battery and encumbrance reads work without it. Either
-way an unprivileged scan still runs. On macOS, root is needed only for the
-firmware password check on Intel Macs. In every case an unprivileged scan runs and reports what it could not read.
+NVMe serials; identity, battery and encumbrance reads work without it. On
+macOS, root is needed only for the firmware password check on Intel Macs. In
+every case an unprivileged scan still runs and reports what it could not read.
 
 Exit status: `0` green, `1` amber, `2` red, `3` not graded.
 
