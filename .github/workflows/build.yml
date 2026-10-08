@@ -1,0 +1,74 @@
+name: Test builds
+
+# Unsigned installers for testing on real laptops. Download them from the
+# run's "Artifacts" section. Not for distribution: they carry no code
+# signature, so Windows SmartScreen and macOS Gatekeeper will warn.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/exciting-turing-eknlmu]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            tauri_args: ""
+            bundle_dir: apps/desktop/src-tauri/target/release/bundle
+          # One universal app for both Apple silicon and Intel Macs.
+          - os: macos-latest
+            name: macos
+            tauri_args: --target universal-apple-darwin
+            bundle_dir: apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle
+          # .deb only: an AppImage cannot ask for administrator rights.
+          - os: ubuntu-latest
+            name: linux
+            tauri_args: --bundles deb
+            bundle_dir: apps/desktop/src-tauri/target/release/bundle
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - name: Install webview build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev
+      - name: Build the desktop app
+        working-directory: apps/desktop
+        run: |
+          npm ci
+          npx tauri build ${{ matrix.tauri_args }}
+      - name: Build the command-line tool
+        shell: bash
+        run: |
+          cargo build --release -p hwprobe-cli
+          mkdir -p cli
+          # tar keeps the executable bit, which artifact zips drop.
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp target/release/hwprobe.exe cli/
+          else
+            tar -czf cli/hwprobe-${{ matrix.name }}.tar.gz -C target/release hwprobe
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe-${{ matrix.name }}
+          path: |
+            ${{ matrix.bundle_dir }}/msi/*.msi
+            ${{ matrix.bundle_dir }}/nsis/*.exe
+            ${{ matrix.bundle_dir }}/dmg/*.dmg
+            ${{ matrix.bundle_dir }}/deb/*.deb
+            cli/*
+          if-no-files-found: error
+          retention-days: 30

@@ -20,6 +20,22 @@ serials exists, and the report says so.
 
 Planned, not yet in this repo: the sync backend.
 
+## Testing on a real laptop
+
+Every push to the development branch builds unsigned test installers (the
+"Test builds" workflow). Open the run in GitHub Actions and download the
+artifact for your system from its Artifacts section:
+
+| Artifact | Contains |
+| --- | --- |
+| `probe-windows` | `.msi` and `-setup.exe` installers, plus `hwprobe.exe` |
+| `probe-macos` | a `.dmg` for Apple silicon and Intel Macs, plus the CLI |
+| `probe-linux` | a `.deb` package, plus the CLI |
+
+They are not signed. Windows SmartScreen needs "More info, Run anyway"; on a
+Mac, open the app once with right-click, Open, or run
+`xattr -cr /Applications/probe.app` if macOS calls it damaged.
+
 ## Using the CLI
 
 ```sh
