@@ -9,6 +9,8 @@
 //! If the history cannot be opened the app still scans and reports; it says
 //! why the history is unavailable instead of failing.
 
+pub mod privilege;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -191,6 +193,26 @@ async fn run_scan(history: tauri::State<'_, History>) -> Result<Opened, String> 
     Ok(history.keep(scan, Origin::Live))
 }
 
+/// Scan with full access: directly when already elevated, otherwise through
+/// the OS's administrator prompt (see [`privilege`]).
+#[tauri::command]
+async fn run_elevated_scan(
+    history: tauri::State<'_, History>,
+) -> Result<Opened, privilege::ElevatedError> {
+    let scan = tauri::async_runtime::spawn_blocking(privilege::scan_with_privilege)
+        .await
+        .map_err(|e| privilege::ElevatedError {
+            kind: "failed",
+            message: format!("scan failed: {e}"),
+        })??;
+    Ok(history.keep(scan, Origin::Live))
+}
+
+#[tauri::command]
+fn privilege_status() -> privilege::Privilege {
+    privilege::privilege()
+}
+
 #[tauri::command]
 fn open_scan(history: tauri::State<'_, History>, path: String) -> Result<Opened, String> {
     load(Path::new(&path)).map(|scan| history.keep(scan, Origin::Imported))
@@ -269,6 +291,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             run_scan,
+            run_elevated_scan,
+            privilege_status,
             open_scan,
             list_history,
             open_stored,

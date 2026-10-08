@@ -1,6 +1,18 @@
 <script>
   import History from './History.svelte';
-  let { onscan, onopen, history = null, onopenstored, ondeletestored, error = '', busy = false } = $props();
+  let {
+    onscan,
+    onscanlimited,
+    onopen,
+    privilege = null,
+    history = null,
+    onopenstored,
+    ondeletestored,
+    error = '',
+    busy = false,
+  } = $props();
+  // A full scan is offered when the app already has the rights or can ask.
+  const full = $derived(!privilege || privilege.elevated || privilege.can_elevate);
 </script>
 
 <main class="home">
@@ -19,9 +31,20 @@
       what it finds. Everything happens on this laptop. Nothing is sent anywhere.
     </p>
     <div class="actions">
-      <button class="primary big" onclick={onscan} disabled={busy}>Scan this laptop</button>
+      <button class="primary big" onclick={full ? onscan : onscanlimited} disabled={busy}>Scan this laptop</button>
       <button onclick={onopen} disabled={busy}>Open a saved scan…</button>
     </div>
+    {#if privilege?.elevated}
+      <p class="access faint">Running with administrator rights, so the scan has full access.</p>
+    {:else if privilege?.can_elevate}
+      <p class="access faint">
+        You will be asked for the {privilege.method} so probe can read drive health, serials and
+        firmware tables. It only reads; it changes nothing.
+        <button class="link" onclick={onscanlimited} disabled={busy}>Scan without administrator rights</button>
+      </p>
+    {:else if privilege}
+      <p class="access faint">Full scans need administrator rights, which this copy of probe cannot request: {privilege.reason}</p>
+    {/if}
     {#if error}
       <p class="error" role="alert">{error}</p>
     {/if}
@@ -84,6 +107,22 @@
   .lede {
     max-width: 60ch;
     font-size: 16px;
+  }
+  .access {
+    font-size: 13px;
+    max-width: 62ch;
+  }
+  .link {
+    border: none;
+    background: none;
+    padding: 0;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .link:hover {
+    background: none;
   }
   .actions {
     display: flex;

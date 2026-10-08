@@ -909,7 +909,7 @@ unsafe fn from_wide_ptr(p: *const u16) -> String {
     from_wide(std::slice::from_raw_parts(p, len))
 }
 
-fn is_elevated() -> bool {
+pub(crate) fn is_elevated() -> bool {
     let mut token: HANDLE = null_mut();
     // SAFETY: the pseudo-handle from GetCurrentProcess needs no closing.
     if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 {

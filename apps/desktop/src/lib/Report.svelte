@@ -23,7 +23,7 @@
   } from './present.js';
   import { compareStored, compareWithSaved, labelStored, saveScanAs, saveTextReportAs } from './api.js';
 
-  let { opened, origin, onback } = $props();
+  let { opened, origin, onback, onrescan = null } = $props();
   const scan = $derived(opened.scan);
   const grade = $derived(opened.grade);
   // Writable deriveds: they follow the opened scan and accept local edits.
@@ -117,7 +117,12 @@
 
   {#if !scan.elevated}
     <p class="banner">
-      <b>Partial scan.</b> It ran without administrator rights, so some reads were skipped. {elevationHint(scan.os)}
+      <b>Partial scan.</b> It ran without administrator rights, so some reads were skipped.
+      {#if onrescan}
+        <button class="rescan" onclick={onrescan}>Rescan with administrator rights</button>
+      {:else}
+        {elevationHint(scan.os)}
+      {/if}
     </p>
   {/if}
 
@@ -435,6 +440,11 @@
   }
   .meta dd {
     margin: 0;
+  }
+  .rescan {
+    margin-left: 6px;
+    padding: 3px 12px;
+    font-size: 14px;
   }
   .banner {
     background: var(--amber-bg);

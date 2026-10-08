@@ -15,10 +15,10 @@ serials exists, and the report says so.
 | `crates/hwprobe` | The extraction and grading core. Independent of any GUI. |
 | `crates/hwprobe-cli` | `hwprobe`, the technician CLI and CI harness, built on the core. |
 | `crates/scanstore` | Local scan history and sync queue (SQLite, compiled in). |
+| `crates/elevate` | Runs one command with administrator rights through the OS's own prompt. |
 | `apps/desktop` | The desktop app: Tauri 2 shell (`src-tauri`) and Svelte 5 frontend (`src`). |
 
-Planned, not yet in this repo: the per-OS privileged helper (deliberately
-deferred: v1 needs no driver) and the sync backend.
+Planned, not yet in this repo: the sync backend.
 
 ## Using the CLI
 
@@ -71,6 +71,30 @@ takes an optional note, such as the listing or seller.
 work. Production builds drop that path, so a shipped app can only display data
 read from a machine. `src/lib/fixtures/demo.json` is produced by the Rust
 grader; a test fails when it drifts.
+
+## Full scans without running the app as administrator
+
+Serials, drive health and firmware tables need administrator rights. The app
+never takes them itself. "Scan this laptop" asks the OS to start a second copy
+of the app's own binary with administrator rights and one argument,
+`--elevated-scan <file>`: UAC on Windows, the administrator password dialog
+on macOS, polkit (`pkexec`) on Linux. That copy scans, writes the JSON and
+exits before any window or web view exists; the app reads the file and
+carries on unprivileged.
+
+- The hand-off file sits in a fresh owner-only directory the app creates and
+  removes. The elevated copy accepts no other argument, refuses any path not
+  shaped like a hand-off file, and creates the file without ever overwriting.
+- A dismissed or refused prompt is a choice, not an error: the app says what
+  will be missing and offers a scan without administrator rights. A partial
+  report offers "Rescan with administrator rights".
+- If the app already runs as administrator or root, it scans directly.
+- An AppImage cannot be re-run as root, and some Linux systems lack polkit;
+  the app says so and points to `sudo hwprobe` instead.
+
+The mechanism is `crates/elevate`; its quoting (AppleScript, Windows command
+lines) and outcome rules are tested on every OS. The Linux path was run end to
+end here: an unprivileged user, a real `pkexec`, granted and refused.
 
 ## Scan history and sync queue
 

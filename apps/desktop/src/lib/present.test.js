@@ -86,3 +86,24 @@ describe('history', () => {
     expect(demo.earlier).toHaveLength(1);
   });
 });
+
+import { scanFailure } from './present.js';
+
+describe('scan failures', () => {
+  it('treats a dismissed administrator prompt as a choice', () => {
+    const r = scanFailure({ kind: 'cancelled', message: 'Administrator access was not given.' });
+    expect(r.cancelled).toBe(true);
+    expect(r.text).toMatch(/scan without it/);
+  });
+
+  it('says what failed otherwise', () => {
+    const refused = scanFailure({ kind: 'unavailable', message: 'Not authorized' });
+    expect(refused.cancelled).toBe(true);
+    expect(refused.text).toBe(
+      'Administrator access is not available (Not authorized). You can scan without it; drive health, serials and firmware checks will be missing.',
+    );
+    expect(scanFailure({ kind: 'failed', message: 'disk full' }).text).toBe('The scan could not run: disk full');
+    expect(scanFailure(new Error('boom')).text).toBe('The scan could not run: boom');
+    expect(scanFailure('plain').text).toBe('The scan could not run: plain');
+  });
+});

@@ -16,7 +16,7 @@ pub mod model;
 pub mod parse;
 pub mod report;
 
-pub use backend::scan;
+pub use backend::{is_elevated, scan};
 pub use fingerprint::Fingerprint;
 pub use grade::{Grade, Verdict};
 pub use model::Scan;

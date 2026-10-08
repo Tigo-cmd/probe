@@ -2,7 +2,16 @@
   import Home from './lib/Home.svelte';
   import Scanning from './lib/Scanning.svelte';
   import Report from './lib/Report.svelte';
-  import { deleteStored, demoMode, listHistory, openSavedScan, openStored, runScan } from './lib/api.js';
+  import {
+    deleteStored,
+    demoMode,
+    listHistory,
+    openSavedScan,
+    openStored,
+    privilegeStatus,
+    runScan,
+  } from './lib/api.js';
+  import { scanFailure } from './lib/present.js';
 
   /** @type {'home' | 'scanning' | 'report'} */
   let view = $state('home');
@@ -10,6 +19,9 @@
   let origin = $state('');
   let error = $state('');
   let history = $state(null);
+  let privilege = $state(null);
+  /** True while the report shows a live scan of this machine. */
+  let live = $state(false);
 
   async function refreshHistory() {
     try {
@@ -19,21 +31,31 @@
     }
   }
   refreshHistory();
+  privilegeStatus()
+    .then((p) => (privilege = p))
+    .catch(() => (privilege = null));
 
-  function show(result, from) {
+  function show(result, from, isLive = false) {
     opened = result;
     origin = from;
+    live = isLive;
     view = 'report';
   }
 
-  async function scan() {
+  /** @param {{full: boolean}} options full: ask for administrator rights first */
+  async function scan({ full }) {
     error = '';
     view = 'scanning';
     try {
-      const result = await runScan();
-      show(result, demoMode ? 'Design preview: sample data, not a real machine' : 'Live scan of this laptop');
+      const result = await runScan({ full });
+      const from = demoMode
+        ? 'Design preview: sample data, not a real machine'
+        : result.scan.elevated
+          ? 'Live scan of this laptop, full access'
+          : 'Live scan of this laptop, without administrator rights';
+      show(result, from, true);
     } catch (e) {
-      error = `The scan could not run: ${e}`;
+      error = scanFailure(e).text;
       view = 'home';
     }
   }
@@ -80,13 +102,20 @@
 {/if}
 
 {#if view === 'scanning'}
-  <Scanning />
+  <Scanning asking={privilege?.can_elevate ? privilege.method : ''} />
 {:else if view === 'report' && opened}
-  <Report {opened} {origin} onback={back} />
+  <Report
+    {opened}
+    {origin}
+    onback={back}
+    onrescan={live && privilege?.can_elevate && !opened.scan.elevated ? () => scan({ full: true }) : null}
+  />
 {:else}
   <Home
-    onscan={scan}
+    onscan={() => scan({ full: true })}
+    onscanlimited={() => scan({ full: false })}
     onopen={open}
+    {privilege}
     {history}
     onopenstored={openFromHistory}
     ondeletestored={removeFromHistory}

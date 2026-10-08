@@ -1,8 +1,15 @@
+<script>
+  let { asking = '' } = $props();
+</script>
+
 <main class="scanning" aria-live="polite">
   <div class="card panel">
     <div class="bar" role="progressbar" aria-label="Scanning"><span></span></div>
     <h1>Scanning this laptop…</h1>
     <p class="muted">Reading firmware, drives, battery and management state. This usually takes under a minute.</p>
+    {#if asking}
+      <p class="muted">If the system asks for the {asking}, enter it to give the scan full access, or cancel to choose a limited scan.</p>
+    {/if}
     <p class="faint">Nothing is written to the drives, and nothing leaves this machine.</p>
   </div>
 </main>

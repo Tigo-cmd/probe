@@ -210,3 +210,24 @@ export function relativeAge(earlierSeconds, laterSeconds) {
   if (days <= 0) return 'earlier the same day';
   return `${days} ${days === 1 ? 'day' : 'days'} earlier`;
 }
+
+/**
+ * What to say when a scan did not run. A dismissed administrator prompt is a
+ * choice, not an error; everything else says what failed.
+ */
+export function scanFailure(e) {
+  if (e && typeof e === 'object' && e.kind === 'cancelled') {
+    return {
+      cancelled: true,
+      text: 'Administrator access was not given. You can scan without it; drive health, serials and firmware checks will be missing.',
+    };
+  }
+  const message = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+  if (e && typeof e === 'object' && e.kind === 'unavailable') {
+    return {
+      cancelled: true,
+      text: `Administrator access is not available (${message}). You can scan without it; drive health, serials and firmware checks will be missing.`,
+    };
+  }
+  return { cancelled: false, text: `The scan could not run: ${message}` };
+}

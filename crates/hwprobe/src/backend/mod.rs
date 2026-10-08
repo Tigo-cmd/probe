@@ -85,6 +85,24 @@ pub(crate) fn wpbt_signal(
     }
 }
 
+/// Whether this process already has the privilege a full scan needs: root on
+/// Linux and macOS, an elevated administrator token on Windows.
+pub fn is_elevated() -> bool {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        // SAFETY: geteuid has no preconditions.
+        unsafe { libc::geteuid() == 0 }
+    }
+    #[cfg(windows)]
+    {
+        windows::is_elevated()
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    {
+        false
+    }
+}
+
 /// Run the backend for the current operating system.
 pub fn scan() -> Scan {
     #[cfg(target_os = "linux")]

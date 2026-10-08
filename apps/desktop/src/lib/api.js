@@ -31,16 +31,30 @@ function requireTauri() {
 }
 
 /**
- * Scan this machine. The result is kept in the local history.
+ * Whether a full scan needs the OS's administrator prompt here.
+ * @returns {Promise<{elevated: boolean, can_elevate: boolean, method: string, reason: string|null}|null>}
+ */
+export async function privilegeStatus() {
+  if (import.meta.env.DEV && demoMode) {
+    return { elevated: false, can_elevate: true, method: 'macOS administrator password', reason: null };
+  }
+  if (!inTauri) return null;
+  return invoke('privilege_status');
+}
+
+/**
+ * Scan this machine. With `full`, the OS asks for an administrator password
+ * first (unless the app already has those rights); a dismissed prompt
+ * rejects with `{kind: 'cancelled'}`. The result is kept in the local history.
  * @returns {Promise<{scan: object, grade: object, record: object|null, earlier: object[], history_error: string|null}>}
  */
-export async function runScan() {
+export async function runScan({ full = false } = {}) {
   if (import.meta.env.DEV && demoMode) {
     await new Promise((r) => setTimeout(r, 1200));
     return demo('opened');
   }
   requireTauri();
-  return invoke('run_scan');
+  return invoke(full ? 'run_elevated_scan' : 'run_scan');
 }
 
 /** Ask for a saved scan, re-grade it and add it to the history. `null` if cancelled. */
