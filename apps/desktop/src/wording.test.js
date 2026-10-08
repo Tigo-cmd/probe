@@ -3,6 +3,7 @@
 // The core crate enforces this for the text report; this does it for the UI.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
 
 function sources(dir) {
@@ -14,7 +15,8 @@ function sources(dir) {
 }
 
 it('no UI source says healthy or not stolen', () => {
-  const files = sources(new URL('.', import.meta.url).pathname);
+  // fileURLToPath, not URL.pathname: the latter gives /D:/... on Windows.
+  const files = sources(fileURLToPath(new URL('.', import.meta.url)));
   expect(files.length).toBeGreaterThan(5);
   for (const f of files) {
     const text = readFileSync(f, 'utf8').toLowerCase();
