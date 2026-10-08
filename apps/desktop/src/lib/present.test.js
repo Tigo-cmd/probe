@@ -63,3 +63,26 @@ describe('presentation rules', () => {
     expect(demo.scan.storage[0].health.kind).toBe('nvme');
   });
 });
+
+import history from './fixtures/demo-history.json';
+import { historyLine, relativeAge } from './present.js';
+
+describe('history', () => {
+  it('summarises the queue and says plainly when nothing was shared', () => {
+    expect(historyLine({ local: 0, pending: 0, synced: 0, failed: 0 })).toBe('No scans stored yet');
+    expect(historyLine({ local: 3, pending: 0, synced: 0, failed: 0 })).toBe('3 scans on this computer · none shared');
+    expect(historyLine({ local: 1, pending: 1, synced: 2, failed: 1 })).toBe('5 scans on this computer · 2 shared, 1 queued, 1 failed');
+  });
+
+  it('describes how much earlier a scan was', () => {
+    expect(relativeAge(0, 14 * 86400)).toBe('14 days earlier');
+    expect(relativeAge(0, 86400)).toBe('1 day earlier');
+    expect(relativeAge(100, 100)).toBe('earlier the same day');
+  });
+
+  it('reads the history fixture produced by the Rust store', () => {
+    expect(history.scans).toHaveLength(3);
+    expect(history.scans.every((s) => s.sync === 'local')).toBe(true);
+    expect(demo.earlier).toHaveLength(1);
+  });
+});

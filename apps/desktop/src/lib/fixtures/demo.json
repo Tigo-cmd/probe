@@ -457,5 +457,42 @@
       "Cloud registration held by the vendor (Windows Autopilot, Apple Business Manager)",
       "Theft status"
     ]
-  }
+  },
+  "record": {
+    "id": 3,
+    "content_id": "0ae54f7eb65c6a91ac260be0bdf3c8d747b08a8e3fb2783a4c6f5a69d2f4d4ac",
+    "started_at": 1791302400,
+    "stored_at": 1791302400,
+    "origin": "live",
+    "os": "windows",
+    "machine": "LENOVO 20HRCTO1WW",
+    "serial": "PF0ABCDE",
+    "headline": "amber",
+    "grader_version": "0.3.0",
+    "label": null,
+    "sync": "local",
+    "sync_attempts": 0,
+    "last_error": null,
+    "synced_at": null
+  },
+  "earlier": [
+    {
+      "id": 1,
+      "content_id": "67b8368572fcf16685fc486ac2624651d024ff8fbf52821fcf98ddc18d918481",
+      "started_at": 1790092800,
+      "stored_at": 1790092800,
+      "origin": "live",
+      "os": "windows",
+      "machine": "LENOVO 20HRCTO1WW",
+      "serial": "PF0ABCDE",
+      "headline": "amber",
+      "grader_version": "0.3.0",
+      "label": null,
+      "sync": "local",
+      "sync_attempts": 0,
+      "last_error": null,
+      "synced_at": null
+    }
+  ],
+  "history_error": null
 }

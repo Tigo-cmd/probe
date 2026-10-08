@@ -1,0 +1,16 @@
+{
+  "matching": 6,
+  "divergences": [
+    {
+      "component": "drive_serial",
+      "before": "S4EWNX0R998877",
+      "after": ""
+    },
+    {
+      "component": "drive_serial",
+      "before": "",
+      "after": "S4EWNX0R123456"
+    }
+  ],
+  "earlier_started_at": 1790092800
+}

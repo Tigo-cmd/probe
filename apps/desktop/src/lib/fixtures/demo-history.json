@@ -1,0 +1,63 @@
+{
+  "scans": [
+    {
+      "id": 3,
+      "content_id": "0ae54f7eb65c6a91ac260be0bdf3c8d747b08a8e3fb2783a4c6f5a69d2f4d4ac",
+      "started_at": 1791302400,
+      "stored_at": 1791302400,
+      "origin": "live",
+      "os": "windows",
+      "machine": "LENOVO 20HRCTO1WW",
+      "serial": "PF0ABCDE",
+      "headline": "amber",
+      "grader_version": "0.3.0",
+      "label": null,
+      "sync": "local",
+      "sync_attempts": 0,
+      "last_error": null,
+      "synced_at": null
+    },
+    {
+      "id": 2,
+      "content_id": "5e2559437dfa3b90b600bd5391ed3e234b4a35da8526fc99ce54c2a03d3ff580",
+      "started_at": 1791043200,
+      "stored_at": 1791043200,
+      "origin": "imported",
+      "os": "windows",
+      "machine": "Dell Inc. Latitude 7490",
+      "serial": "8JQ1KX2",
+      "headline": "red",
+      "grader_version": "0.3.0",
+      "label": "Marketplace listing, seller in Leeds",
+      "sync": "local",
+      "sync_attempts": 0,
+      "last_error": null,
+      "synced_at": null
+    },
+    {
+      "id": 1,
+      "content_id": "67b8368572fcf16685fc486ac2624651d024ff8fbf52821fcf98ddc18d918481",
+      "started_at": 1790092800,
+      "stored_at": 1790092800,
+      "origin": "live",
+      "os": "windows",
+      "machine": "LENOVO 20HRCTO1WW",
+      "serial": "PF0ABCDE",
+      "headline": "amber",
+      "grader_version": "0.3.0",
+      "label": null,
+      "sync": "local",
+      "sync_attempts": 0,
+      "last_error": null,
+      "synced_at": null
+    }
+  ],
+  "counts": {
+    "local": 3,
+    "pending": 0,
+    "synced": 0,
+    "failed": 0
+  },
+  "location": "~/.local/share/app.probe.desktop/scans.sqlite3",
+  "error": null
+}

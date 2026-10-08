@@ -1,0 +1,17 @@
+[package]
+name = "scanstore"
+description = "Local scan history and sync queue for hwprobe"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+# rusqlite pulls in hashlink, which needs 1.85.
+rust-version = "1.85"
+
+[dependencies]
+hwprobe = { path = "../hwprobe" }
+serde.workspace = true
+serde_json.workspace = true
+# SQLite is compiled in: no system library, so the single binary still runs
+# from a USB stick on a machine with nothing installed.
+rusqlite = { version = "0.40", features = ["bundled"] }
+sha2 = "0.10"

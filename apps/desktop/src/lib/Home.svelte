@@ -1,5 +1,6 @@
 <script>
-  let { onscan, onopen, error = '', busy = false } = $props();
+  import History from './History.svelte';
+  let { onscan, onopen, history = null, onopenstored, ondeletestored, error = '', busy = false } = $props();
 </script>
 
 <main class="home">
@@ -25,6 +26,10 @@
       <p class="error" role="alert">{error}</p>
     {/if}
   </section>
+
+  {#if history}
+    <History {history} onopen={onopenstored} ondelete={ondeletestored} />
+  {/if}
 
   <section class="facts">
     <div class="fact card">

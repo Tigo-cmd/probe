@@ -13,17 +13,22 @@
     formatBytes,
     formatCapacity,
     formatGiB,
+    ORIGINS,
     osName,
+    relativeAge,
     scannedAt,
     sortFindings,
     TRANSPORTS,
     verdict,
   } from './present.js';
-  import { compareWithSaved, saveScanAs, saveTextReportAs } from './api.js';
+  import { compareStored, compareWithSaved, labelStored, saveScanAs, saveTextReportAs } from './api.js';
 
-  let { graded, origin, onback } = $props();
-  const scan = $derived(graded.scan);
-  const grade = $derived(graded.grade);
+  let { opened, origin, onback } = $props();
+  const scan = $derived(opened.scan);
+  const grade = $derived(opened.grade);
+  // Writable deriveds: they follow the opened scan and accept local edits.
+  let record = $derived(opened.record);
+  let label = $derived(opened.record?.label ?? '');
   const head = $derived(verdict(grade.headline));
 
   let status = $state('');
@@ -46,10 +51,28 @@
     act(
       () => compareWithSaved(scan),
       (r) => {
-        comparison = r;
+        comparison = { title: r.path, comparison: r.comparison };
         return '';
       },
     );
+  const compareEarlier = (s) =>
+    act(
+      () => compareStored(s.id, scan),
+      (c) => {
+        comparison = { title: "From scan history", comparison: c };
+        return '';
+      },
+    );
+  async function saveLabel() {
+    if (!record || (record.label ?? '') === label.trim()) return;
+    await act(
+      () => labelStored(record.id, label.trim()),
+      (r) => {
+        record = r;
+        return 'Note saved';
+      },
+    );
+  }
 
   const capacity = (c) => formatCapacity(c);
 </script>
@@ -98,6 +121,46 @@
     </p>
   {/if}
 
+  {#if record}
+    <section class="kept">
+      <span class="faint small">Kept in scan history · {ORIGINS[record.origin] ?? record.origin} · on this computer only</span>
+      <label class="note">
+        <span class="faint small">Note</span>
+        <input
+          type="text"
+          bind:value={label}
+          placeholder="Listing, seller or asking price"
+          maxlength="200"
+          onblur={saveLabel}
+          onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+        />
+      </label>
+    </section>
+  {:else if opened.history_error}
+    <p class="banner">Not kept in scan history: {opened.history_error}</p>
+  {/if}
+
+  {#if opened.earlier?.length}
+    <section class="card block earlier">
+      <div class="block-head">
+        <h2>Earlier scans of this machine</h2>
+        <span class="faint small">Matched on UUID or serial, which are claims</span>
+      </div>
+      <p class="muted small">Compare to see whether drives, battery, board or network cards changed in between.</p>
+      <ul class="plain">
+        {#each opened.earlier as s (s.id)}
+          <li class="earlier-row">
+            <VerdictBadge value={s.headline} />
+            <span>{scannedAt(s.started_at)}</span>
+            <span class="faint small">{relativeAge(s.started_at, scan.started_at)} · {ORIGINS[s.origin] ?? s.origin}{s.label ? ` · ${s.label}` : ''}</span>
+            <span class="spacer"></span>
+            <button onclick={() => compareEarlier(s)}>Compare</button>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+
   <section class="axes">
     {#each grade.axes as axis (axis.axis)}
       <a class="axis card" href="#axis-{axis.axis}">
@@ -115,7 +178,7 @@
     {@const c = comparison.comparison}
     <section class="card block compare {c.divergences.length ? 'diverged' : ''}">
       <h2>Compared with an earlier scan</h2>
-      <p class="faint small mono">{comparison.path}, scanned {scannedAt(c.earlier_started_at)}</p>
+      <p class="faint small mono">{comparison.title}, scanned {scannedAt(c.earlier_started_at)}</p>
       {#if c.divergences.length}
         <p><b>{c.divergences.length} identifier{c.divergences.length === 1 ? '' : 's'} changed.</b> Parts may have been swapped since the earlier scan. Ask the seller why.</p>
         <ul>
@@ -379,6 +442,38 @@
     border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
     padding: 10px 14px;
     border-radius: var(--radius-sm);
+  }
+  .kept {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+  }
+  .note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 440px;
+  }
+  .note input {
+    flex: 1;
+    font: inherit;
+    font-size: 14px;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    min-width: 0;
+  }
+  .note input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+  .earlier-row {
+    align-items: center;
   }
   .axes {
     display: grid;

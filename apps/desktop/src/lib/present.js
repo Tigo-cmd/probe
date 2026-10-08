@@ -177,3 +177,36 @@ export function describeDivergence(d) {
   if (!d.after) return `${name} no longer present: ${d.before}`;
   return `${name} changed: ${d.before} → ${d.after}`;
 }
+
+export const ORIGINS = {
+  live: 'Scanned here',
+  imported: 'Opened from a file',
+};
+
+export const SYNC_STATES = {
+  local: 'On this computer only',
+  pending: 'Queued to share',
+  synced: 'Shared',
+  failed: 'Sharing failed, will retry',
+};
+
+/** "3 scans on this computer · none shared". */
+export function historyLine(counts) {
+  const total = counts.local + counts.pending + counts.synced + counts.failed;
+  if (total === 0) return 'No scans stored yet';
+  const scans = `${total} ${total === 1 ? 'scan' : 'scans'} on this computer`;
+  const shared = counts.synced + counts.pending + counts.failed;
+  if (shared === 0) return `${scans} · none shared`;
+  const parts = [];
+  if (counts.synced) parts.push(`${counts.synced} shared`);
+  if (counts.pending) parts.push(`${counts.pending} queued`);
+  if (counts.failed) parts.push(`${counts.failed} failed`);
+  return `${scans} · ${parts.join(', ')}`;
+}
+
+/** "Same laptop, 14 days earlier". */
+export function relativeAge(earlierSeconds, laterSeconds) {
+  const days = Math.round((laterSeconds - earlierSeconds) / 86400);
+  if (days <= 0) return 'earlier the same day';
+  return `${days} ${days === 1 ? 'day' : 'days'} earlier`;
+}

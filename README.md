@@ -14,10 +14,11 @@ serials exists, and the report says so.
 | --- | --- |
 | `crates/hwprobe` | The extraction and grading core. Independent of any GUI. |
 | `crates/hwprobe-cli` | `hwprobe`, the technician CLI and CI harness, built on the core. |
+| `crates/scanstore` | Local scan history and sync queue (SQLite, compiled in). |
 | `apps/desktop` | The desktop app: Tauri 2 shell (`src-tauri`) and Svelte 5 frontend (`src`). |
 
-Planned, not yet in this repo: the per-OS privileged helper (deliberately deferred: v1 needs no driver), the
-local SQLite scan queue, and the sync backend.
+Planned, not yet in this repo: the per-OS privileged helper (deliberately
+deferred: v1 needs no driver) and the sync backend.
 
 ## Using the CLI
 
@@ -60,10 +61,35 @@ cannot assess, the standing caveats and the probe notes. It saves the raw scan
 as JSON (readable by the CLI), saves the text report, and compares this scan's
 identifiers with an earlier one to flag swapped parts.
 
+Every scan the app runs or opens is kept in a local history
+(`scans.sqlite3` in the app's data folder; the home screen shows the path).
+The report lists earlier scans that claim to be the same machine (same SMBIOS
+UUID, system serial or board serial) and compares with one click. Each scan
+takes an optional note, such as the listing or seller.
+
 `npm run dev` with `?demo` in a plain browser shows sample data for design
 work. Production builds drop that path, so a shipped app can only display data
 read from a machine. `src/lib/fixtures/demo.json` is produced by the Rust
 grader; a test fails when it drifts.
+
+## Scan history and sync queue
+
+`crates/scanstore` keeps scans in SQLite with the C library compiled in, so
+there is still nothing to install. The rules:
+
+- **Nothing is shared unasked.** A scan starts `local`. Only an explicit
+  request moves it to `pending`; the sync service, once it exists, takes
+  pending scans oldest first and marks them `synced` or `failed` (failed ones
+  are retried). `withdraw` takes a scan back out before it is sent.
+- **Scans are immutable and content-addressed.** Each is stored exactly as
+  captured, keyed by the SHA-256 of its JSON. Storing it twice is a no-op, so
+  a sync retry can never create a duplicate.
+- **Verdicts are a cache.** Opening the store with a different grader version
+  re-grades every row, so the history never shows an outdated verdict.
+- **Newer files are refused, not rewritten.** A history written by a newer
+  schema stops with an error instead of being migrated backwards.
+- **History failure never blocks a scan.** If the file cannot be opened, the
+  app still scans and reports, and says why the scan was not kept.
 
 ## What the core does today
 
