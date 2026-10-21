@@ -107,3 +107,64 @@ describe('scan failures', () => {
     expect(scanFailure('plain').text).toBe('The scan could not run: plain');
   });
 });
+
+import {
+  batteryTone,
+  bestForLine,
+  coverageLine,
+  fit,
+  machineName,
+  powerOnText,
+  rankUses,
+  ring,
+  tierLabel,
+  useCase,
+} from './present.js';
+
+describe('assessment presentation', () => {
+  it('reads the assessment the Rust code put in the demo fixture', () => {
+    const a = demo.assessment;
+    expect(a.uses.map((u) => u.use_case)).toEqual(['everyday', 'work', 'study', 'programming', 'creative', 'video', 'gaming']);
+    expect(a.uses.every((u) => useCase(u.use_case).title && fit(u.fit).label)).toBe(true);
+    expect(a.condition.areas.map((x) => x.axis)).toEqual(['function', 'battery', 'encumbrance']);
+  });
+
+  it('draws a missing value as an empty ring, never a full one', () => {
+    const empty = ring(null, 10);
+    expect(empty.offset).toBeCloseTo(empty.circumference);
+    expect(ring(100, 10).offset).toBeCloseTo(0);
+    expect(ring(250, 10).offset).toBeCloseTo(0);
+    expect(ring(50, 10).offset).toBeCloseTo(empty.circumference / 2);
+  });
+
+  it('names the machine the way a buyer knows it', () => {
+    const id = (vendor, model, version) => ({ vendor: { value: vendor }, model: { value: model }, version: { value: version } });
+    expect(machineName(id('LENOVO', '20HRCTO1WW', 'ThinkPad X1 Carbon 5th'))).toEqual({ vendor: 'Lenovo', name: 'ThinkPad X1 Carbon 5th' });
+    expect(machineName(id('Dell Inc.', 'Latitude 7490', null))).toEqual({ vendor: 'Dell', name: 'Latitude 7490' });
+    expect(machineName({}).name).toBe('Unidentified laptop');
+  });
+
+  it('ranks uses best first and keeps unrated ones last', () => {
+    const r = rankUses([
+      { use_case: 'a', score: null },
+      { use_case: 'b', score: 40 },
+      { use_case: 'c', score: 90 },
+    ]);
+    expect(r.map((u) => u.use_case)).toEqual(['c', 'b', 'a']);
+  });
+
+  it('says how complete a score is', () => {
+    expect(coverageLine({ score: null, areas: [1, 2, 3], scored_areas: 0, cap: null })).toMatch(/No score/);
+    expect(coverageLine({ score: 70, areas: [1, 2, 3], scored_areas: 2, cap: null })).toMatch(/2 of 3/);
+    expect(coverageLine({ score: 39, areas: [1, 2, 3], scored_areas: 3, cap: 39 })).toMatch(/Capped at 39/);
+    expect(bestForLine([])).toBeNull();
+    expect(bestForLine(['everyday', 'work', 'study'])).toBe('Best for everyday use, work and school');
+  });
+
+  it('uses the grader bands and plain units', () => {
+    expect([batteryTone(null), batteryTone(85), batteryTone(74), batteryTone(60), batteryTone(110)]).toEqual(['grey', 'green', 'amber', 'red', 'amber']);
+    expect(tierLabel(null)).toBe('Not rated');
+    expect(tierLabel(5)).toBe('High-end');
+    expect(powerOnText(5210)).toBe('5,210 hours (about 7 months powered on)');
+  });
+});

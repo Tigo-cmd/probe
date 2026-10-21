@@ -103,6 +103,39 @@ pub fn is_elevated() -> bool {
     }
 }
 
+/// Short names for the graphics vendors buyers recognise, by PCI vendor id.
+#[cfg_attr(target_os = "macos", allow(dead_code))]
+pub(crate) fn gpu_vendor(vendor: u16) -> Option<&'static str> {
+    Some(match vendor {
+        0x10de => "NVIDIA",
+        0x1002 | 0x1022 => "AMD",
+        0x8086 => "Intel",
+        0x106b => "Apple",
+        0x5143 => "Qualcomm",
+        0x1af4 => "Virtio",
+        0x15ad => "VMware",
+        0x1234 => "QEMU",
+        0x80ee => "VirtualBox",
+        _ => return None,
+    })
+}
+
+/// `"NVIDIA"` + `"GeForce RTX 3050 Mobile"` → `"NVIDIA GeForce RTX 3050 Mobile"`,
+/// without repeating a vendor the model name already starts with.
+#[cfg_attr(target_os = "macos", allow(dead_code))]
+pub(crate) fn gpu_name(vendor: Option<&str>, model: &str) -> String {
+    match vendor {
+        Some(v)
+            if !model
+                .to_ascii_lowercase()
+                .starts_with(&v.to_ascii_lowercase()) =>
+        {
+            format!("{v} {model}")
+        }
+        _ => model.to_string(),
+    }
+}
+
 /// Run the backend for the current operating system.
 pub fn scan() -> Scan {
     #[cfg(target_os = "linux")]

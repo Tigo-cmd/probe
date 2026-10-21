@@ -14,9 +14,9 @@ export const VERDICTS = {
 };
 
 export const AXES = {
-  function: { label: 'Function', blurb: 'Drives and core hardware' },
+  function: { label: 'Drives', blurb: 'Storage errors and wear' },
   battery: { label: 'Battery', blurb: 'Capacity and wear' },
-  encumbrance: { label: 'Encumbrance', blurb: 'Locks, management and ex-corporate markers' },
+  encumbrance: { label: 'Ownership', blurb: 'Locks, management and ex-company markers' },
 };
 
 export const PROVENANCE = {
@@ -230,4 +230,186 @@ export function scanFailure(e) {
     };
   }
   return { cancelled: false, text: `The scan could not run: ${message}` };
+}
+
+// ------------------------------------------------------------ assessment
+
+/** The kinds of use the Rust assessment rates, in its order. */
+export const USE_CASES = {
+  everyday: { phrase: 'everyday use', label: 'Everyday', title: 'Everyday use', blurb: 'Browsing, email and streaming', icon: 'globe' },
+  work: { phrase: 'work', label: 'Work', title: 'Office and video calls', blurb: 'Documents, spreadsheets and meetings', icon: 'briefcase' },
+  study: { phrase: 'school', label: 'School', title: 'School and travel', blurb: 'Notes, classes and a day unplugged', icon: 'backpack' },
+  programming: { phrase: 'coding', label: 'Coding', title: 'Programming', blurb: 'Editors, builds and dev tools', icon: 'code' },
+  creative: { phrase: 'photo editing', label: 'Photo', title: 'Photo and design', blurb: 'Photo editing, illustration and layout', icon: 'brush' },
+  video: { phrase: 'video editing', label: 'Video', title: 'Video editing and 3D', blurb: 'Editing, rendering and 3D work', icon: 'film' },
+  gaming: { phrase: 'gaming', label: 'Gaming', title: 'Gaming', blurb: 'Recent PC games', icon: 'gamepad' },
+};
+
+export const FITS = {
+  great: { label: 'Great fit', short: 'Great', tone: 'green' },
+  good: { label: 'Good fit', short: 'Good', tone: 'green' },
+  limited: { label: 'Works, with compromises', short: 'Limited', tone: 'amber' },
+  poor: { label: 'Not a good match', short: 'Poor', tone: 'red' },
+  blocked: { label: 'Do not buy yet', short: 'Blocked', tone: 'red' },
+  unknown: { label: 'Not enough information', short: 'Unknown', tone: 'grey' },
+};
+
+export const BANDS = {
+  excellent: 'Excellent condition',
+  good: 'Good condition',
+  fair: 'Fair condition',
+  poor: 'Poor condition',
+};
+
+/** @param {string} u */
+export function useCase(u) {
+  return USE_CASES[u] ?? { label: u, title: u, blurb: '', icon: 'globe' };
+}
+
+/** @param {string} f */
+export function fit(f) {
+  return FITS[f] ?? FITS.unknown;
+}
+
+/** The colour family for a verdict: green, amber, red or grey. */
+export function verdictTone(v) {
+  return v === 'green' || v === 'amber' || v === 'red' ? v : 'grey';
+}
+
+/** The colour family for a 0–100 score, for charts without a verdict. */
+export function scoreTone(score) {
+  if (score === null || score === undefined) return 'grey';
+  if (score >= 75) return 'green';
+  if (score >= 45) return 'amber';
+  return 'red';
+}
+
+/**
+ * Stroke geometry for a ring chart of radius `r`. A missing value draws an
+ * empty ring: it is never shown as full.
+ */
+export function ring(value, r) {
+  const c = 2 * Math.PI * r;
+  const v = typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+  return { circumference: c, offset: c * (1 - v / 100) };
+}
+
+export const TIERS = ['Not rated', 'Basic', 'Entry', 'Mainstream', 'Strong', 'High-end'];
+
+export function tierLabel(t) {
+  return TIERS[t ?? 0] ?? TIERS[0];
+}
+
+export const STORAGE_KINDS = {
+  nvme: 'NVMe SSD',
+  sata_ssd: 'SATA SSD',
+  hdd: 'Hard drive',
+  unknown: 'Internal drive',
+};
+
+const VENDORS = [
+  [/^lenovo/i, 'Lenovo'],
+  [/^dell/i, 'Dell'],
+  [/^(hp|hewlett)/i, 'HP'],
+  [/^asus/i, 'ASUS'],
+  [/^apple/i, 'Apple'],
+  [/^acer/i, 'Acer'],
+  [/^microsoft/i, 'Microsoft'],
+  [/^micro-star|^msi/i, 'MSI'],
+  [/^samsung/i, 'Samsung'],
+  [/^framework/i, 'Framework'],
+  [/^razer/i, 'Razer'],
+  [/^toshiba|^dynabook/i, 'Dynabook'],
+  [/^fujitsu/i, 'Fujitsu'],
+  [/^google/i, 'Google'],
+  [/^huawei/i, 'Huawei'],
+  [/^xiaomi/i, 'Xiaomi'],
+  [/^lg /i, 'LG'],
+];
+
+/**
+ * The name a buyer knows the machine by. Lenovo keeps the marketing name in
+ * the version string ("ThinkPad X1 Carbon 5th") and a part number in the
+ * model ("20HRCTO1WW"); prefer whichever reads as a name.
+ */
+export function machineName(identity) {
+  const raw = identity?.vendor?.value ?? '';
+  const vendor = VENDORS.find(([re]) => re.test(raw))?.[1] ?? raw.trim();
+  const model = identity?.model?.value?.trim() ?? '';
+  const version = identity?.version?.value?.trim() ?? '';
+  const readable = (s) => /[a-z]/.test(s) && /\s/.test(s);
+  const name = readable(version) && !readable(model) ? version : model || version;
+  return { vendor, name: name || 'Unidentified laptop' };
+}
+
+/** Uses ordered best first; unrated ones last, in their original order. */
+export function rankUses(uses) {
+  return uses
+    .map((u, i) => ({ u, i }))
+    .sort((a, b) => (b.u.score ?? -1) - (a.u.score ?? -1) || a.i - b.i)
+    .map(({ u }) => u);
+}
+
+/** "Best for everyday use and office work", or null when nothing fits well. */
+export function bestForLine(bestFor) {
+  if (!bestFor?.length) return null;
+  const names = bestFor.slice(0, 3).map((u) => useCase(u).phrase ?? u);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
+  return `Best for ${list}`;
+}
+
+/** One sentence under the score saying how complete it is. */
+export function coverageLine(condition) {
+  const total = condition.areas.length;
+  if (condition.score === null || condition.score === undefined) {
+    return 'No score: none of the three areas could be read.';
+  }
+  const parts = [];
+  if (condition.scored_areas < total) {
+    parts.push(`Based on ${condition.scored_areas} of ${total} areas; the others could not be read.`);
+  }
+  if (condition.cap !== null && condition.cap !== undefined) {
+    parts.push(`Capped at ${condition.cap} because of this.`);
+  }
+  return parts.join(' ') || 'Based on drives, battery and ownership checks.';
+}
+
+/** Battery capacity colours follow the grader's bands: 80% and up, 70–79%, below 70%. */
+export function batteryTone(percent) {
+  if (percent === null || percent === undefined) return 'grey';
+  if (percent > 105) return 'amber';
+  if (percent >= 80) return 'green';
+  if (percent >= 70) return 'amber';
+  return 'red';
+}
+
+/** "5,210 hours (about 7 months powered on)". */
+export function powerOnText(hours) {
+  const h = Number(hours);
+  if (!Number.isFinite(h)) return 'Not reported';
+  const days = h / 24;
+  const span =
+    days >= 365 ? `${(days / 365).toFixed(1)} years` : days >= 60 ? `${Math.round(days / 30)} months` : `${Math.round(days)} days`;
+  return `${h.toLocaleString('en-US')} hours (about ${span} powered on)`;
+}
+
+/** NVMe data units are 1000 × 512 bytes. */
+export function nvmeWritten(units) {
+  const bytes = Number(units) * 512_000;
+  if (!Number.isFinite(bytes)) return 'Not reported';
+  return bytes >= 1e12 ? `${(bytes / 1e12).toFixed(1)} TB` : `${Math.round(bytes / 1e9)} GB`;
+}
+
+export const SMART_NAMES = {
+  5: 'Reallocated sectors',
+  187: 'Reported uncorrectable',
+  188: 'Command timeouts',
+  197: 'Pending sectors',
+  198: 'Offline uncorrectable',
+};
+
+/** An ATA attribute's raw value as an event count, as the Rust grader reads it. */
+export function ataCount(attr) {
+  const raw = Number(attr.raw);
+  return attr.id === 188 ? raw % 2 ** 16 : raw % 2 ** 32;
 }

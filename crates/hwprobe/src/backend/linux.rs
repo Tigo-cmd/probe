@@ -17,6 +17,8 @@ pub struct LinuxBackend {
     sys: PathBuf,
     proc_: PathBuf,
     dev: PathBuf,
+    /// Where `hwdata/pci.ids` or `misc/pci.ids` may be found.
+    share: PathBuf,
     /// Issue device ioctls. Off when pointed at a fixture tree.
     device_io: bool,
 }
@@ -27,6 +29,7 @@ impl LinuxBackend {
             sys: "/sys".into(),
             proc_: "/proc".into(),
             dev: "/dev".into(),
+            share: "/usr/share".into(),
             device_io: true,
         }
     }
@@ -38,6 +41,7 @@ impl LinuxBackend {
             sys: root.join("sys"),
             proc_: root.join("proc"),
             dev: root.join("dev"),
+            share: root.join("usr/share"),
             device_io: false,
         }
     }
@@ -65,6 +69,7 @@ impl LinuxBackend {
             batteries: self.batteries(),
             storage: self.storage(&mut notes),
             displays: self.displays(&mut notes),
+            gpus: self.gpus(&mut notes),
             network: self.network(),
             encumbrance: self.encumbrance(&identity, &mut notes),
             identity,
@@ -385,6 +390,104 @@ impl LinuxBackend {
                     &format!("EDID rejected: {e}"),
                 )),
             }
+        }
+        out
+    }
+
+    /// Graphics adapters: PCI display-class devices behind the DRM cards.
+    /// Names come from the NVIDIA driver when it is loaded, else from the
+    /// system's pci.ids table, else only the vendor is named.
+    fn gpus(&self, notes: &mut Vec<ProbeNote>) -> Vec<Gpu> {
+        let ids = ["hwdata/pci.ids", "misc/pci.ids", "pci.ids"]
+            .iter()
+            .find_map(|p| read(&self.share.join(p)));
+        let mut seen = std::collections::BTreeSet::new();
+        let mut out = Vec::new();
+        for dir in list_dir(&self.sys.join("class/drm")) {
+            let name = file_name(&dir);
+            let is_card = name
+                .strip_prefix("card")
+                .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+            if !is_card {
+                continue;
+            }
+            let device = dir.join("device");
+            let hex = |file: &str| {
+                read_trimmed(&device.join(file))
+                    .and_then(|v| u32::from_str_radix(v.trim_start_matches("0x"), 16).ok())
+            };
+            let (Some(vendor), Some(id)) = (hex("vendor"), hex("device")) else {
+                continue; // not a PCI device, e.g. a firmware framebuffer
+            };
+            // PCI class 03xxxx is a display controller.
+            if hex("class").is_some_and(|c| c >> 16 != 0x03) {
+                continue;
+            }
+            let bus = fs::canonicalize(&device)
+                .ok()
+                .map(|p| file_name(&p))
+                .unwrap_or_default();
+            if !seen.insert((bus.clone(), vendor, id)) {
+                continue;
+            }
+            let (vendor, id) = (vendor as u16, id as u16);
+            let pci_id = format!("{vendor:04x}:{id:04x}");
+
+            let nvidia_info = self
+                .proc_
+                .join(format!("driver/nvidia/gpus/{bus}/information"));
+            let from_driver = read(&nvidia_info).and_then(|t| {
+                t.lines()
+                    .find_map(|l| l.strip_prefix("Model:"))
+                    .map(|m| m.trim().to_string())
+                    .filter(|m| !m.is_empty())
+            });
+            let gpu_name = if let Some(model) = from_driver {
+                Field::claimed(Some(model), source(&nvidia_info))
+            } else {
+                let (vendor_name, device_name) = ids
+                    .as_deref()
+                    .map(|t| parse::pciids::lookup(t, vendor, id))
+                    .unwrap_or((None, None));
+                let vendor_label = super::gpu_vendor(vendor)
+                    .map(str::to_string)
+                    .or(vendor_name);
+                match (device_name, vendor_label) {
+                    (Some(d), v) => Field::claimed(
+                        Some(super::gpu_name(
+                            v.as_deref(),
+                            parse::pciids::marketing_name(&d),
+                        )),
+                        format!("pci.ids:{pci_id}"),
+                    ),
+                    (None, Some(v)) => {
+                        Field::claimed(Some(format!("{v} graphics")), format!("pci.ids:{pci_id}"))
+                            .with_note(if ids.is_some() {
+                                "model not listed in this system's pci.ids"
+                            } else {
+                                "no pci.ids table on this system: model not named"
+                            })
+                    }
+                    (None, None) => Field::missing(
+                        Provenance::Claimed,
+                        format!("pci:{pci_id}"),
+                        "unknown graphics vendor",
+                    ),
+                }
+            };
+            let vram_path = device.join("mem_info_vram_total");
+            let vram = read_trimmed(&vram_path).and_then(|v| v.parse::<u64>().ok());
+            out.push(Gpu {
+                name: gpu_name,
+                pci_id: Some(pci_id),
+                vram_bytes: Field::measured(vram.filter(|&v| v > 0), source(&vram_path)),
+            });
+        }
+        if out.is_empty() {
+            notes.push(note(
+                "gpu",
+                "no PCI graphics adapter found under /sys/class/drm",
+            ));
         }
         out
     }
@@ -747,6 +850,45 @@ mod tests {
                 .any(|s| s.id == "wpbt" && !s.present),
             "no WPBT file means no table"
         );
+    }
+
+    #[test]
+    fn names_graphics_adapters_from_pci_ids() {
+        let t = Tree::new("gpu");
+        t.put("sys/class/drm/card0/device/vendor", "0x8086\n");
+        t.put("sys/class/drm/card0/device/device", "0x46a6\n");
+        t.put("sys/class/drm/card0/device/class", "0x030000\n");
+        t.put("sys/class/drm/card0-eDP-1/edid", "");
+        t.put("sys/class/drm/card1/device/vendor", "0x10de\n");
+        t.put("sys/class/drm/card1/device/device", "0x25a2\n");
+        t.put("sys/class/drm/card1/device/class", "0x030200\n");
+        t.put("sys/class/drm/card2/device/vendor", "0x1b36\n");
+        t.put("sys/class/drm/card2/device/device", "0x0001\n");
+        t.put("sys/class/drm/card2/device/class", "0x020000\n");
+        t.put("sys/class/drm/renderD128/device/vendor", "0x10de\n");
+        t.put(
+            "usr/share/hwdata/pci.ids",
+            "10de  NVIDIA Corporation\n\t25a2  GA107M [GeForce RTX 3050 Mobile]\n8086  Intel Corporation\n",
+        );
+        let scan = LinuxBackend::with_root(&t.0).scan();
+        let names: Vec<_> = scan
+            .gpus
+            .iter()
+            .map(|g| g.name.value.clone().unwrap_or_default())
+            .collect();
+        assert_eq!(
+            names,
+            ["Intel graphics", "NVIDIA GeForce RTX 3050 Mobile"],
+            "network-class device, connectors and render nodes are skipped"
+        );
+        assert!(scan.gpus[0]
+            .name
+            .note
+            .as_deref()
+            .unwrap()
+            .contains("not listed"));
+        assert_eq!(scan.gpus[1].pci_id.as_deref(), Some("10de:25a2"));
+        assert_eq!(scan.gpus[1].name.provenance, Provenance::Claimed);
     }
 
     #[test]

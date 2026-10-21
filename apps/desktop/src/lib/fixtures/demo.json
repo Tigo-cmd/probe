@@ -245,6 +245,21 @@
         "native_height": 1440
       }
     ],
+    "gpus": [
+      {
+        "name": {
+          "value": "Intel HD Graphics 620",
+          "provenance": "claimed",
+          "source": "setupapi:SPDRP_DEVICEDESC"
+        },
+        "pci_id": "8086:5916",
+        "vram_bytes": {
+          "value": 134217728,
+          "provenance": "claimed",
+          "source": "registry:HardwareInformation.qwMemorySize"
+        }
+      }
+    ],
     "network": [
       {
         "name": "Wi-Fi",
@@ -458,9 +473,311 @@
       "Theft status"
     ]
   },
+  "assessment": {
+    "version": "1.0.0",
+    "condition": {
+      "score": 79,
+      "band": "good",
+      "cap": 79,
+      "scored_areas": 3,
+      "areas": [
+        {
+          "axis": "function",
+          "verdict": "green",
+          "score": 96,
+          "weight": 45,
+          "summary": "No faults detected on PhysicalDrive0, about 96% of rated life left"
+        },
+        {
+          "axis": "battery",
+          "verdict": "amber",
+          "score": 74,
+          "weight": 25,
+          "summary": "Battery holds 74% of its original capacity, 612 charge cycles"
+        },
+        {
+          "axis": "encumbrance",
+          "verdict": "amber",
+          "score": 60,
+          "weight": 30,
+          "summary": "SMBIOS asset tag is set (\"ACME-IT-00412\"): ex-corporate marker"
+        }
+      ]
+    },
+    "specs": {
+      "cpu": {
+        "tier": 2,
+        "summary": "Intel Core i7, 7th gen, low-power",
+        "arm": false,
+        "apple": false
+      },
+      "ram_gb": 16,
+      "storage": {
+        "kind": "nvme",
+        "capacity_bytes": 1000204886016
+      },
+      "gpu": {
+        "tier": 1,
+        "name": "Intel HD Graphics 620",
+        "discrete": false
+      },
+      "display": {
+        "width": 2560,
+        "height": 1440
+      },
+      "battery_percent": 74
+    },
+    "uses": [
+      {
+        "use_case": "everyday",
+        "fit": "great",
+        "score": 88,
+        "reasons": [
+          {
+            "tone": "fair",
+            "provenance": "inferred",
+            "text": "Intel Core i7, 7th gen, low-power: copes with browsing, email and streaming, heavier jobs will feel slow"
+          },
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "Battery holds 74% of its original capacity: expect somewhat shorter time unplugged"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "About 16 GB of memory: plenty for browsing, email and streaming"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "Fast NVMe SSD, 1.0 TB"
+          },
+          {
+            "tone": "good",
+            "provenance": "claimed",
+            "text": "2560×1440 screen: sharp and roomy"
+          }
+        ],
+        "unknowns": []
+      },
+      {
+        "use_case": "work",
+        "fit": "great",
+        "score": 84,
+        "reasons": [
+          {
+            "tone": "fair",
+            "provenance": "inferred",
+            "text": "Intel Core i7, 7th gen, low-power: copes with office apps and video calls, heavier jobs will feel slow"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "About 16 GB of memory: plenty for office apps and video calls"
+          },
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "Battery holds 74% of its original capacity: expect somewhat shorter time unplugged"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "Fast NVMe SSD, 1.0 TB"
+          },
+          {
+            "tone": "good",
+            "provenance": "claimed",
+            "text": "2560×1440 screen: sharp and roomy"
+          }
+        ],
+        "unknowns": []
+      },
+      {
+        "use_case": "study",
+        "fit": "good",
+        "score": 79,
+        "reasons": [
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "Battery holds 74% of its original capacity: expect somewhat shorter time unplugged"
+          },
+          {
+            "tone": "fair",
+            "provenance": "inferred",
+            "text": "Intel Core i7, 7th gen, low-power: copes with schoolwork and a day of classes, heavier jobs will feel slow"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "About 16 GB of memory: plenty for schoolwork and a day of classes"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "Fast NVMe SSD, 1.0 TB"
+          },
+          {
+            "tone": "good",
+            "provenance": "claimed",
+            "text": "2560×1440 screen: sharp and roomy"
+          }
+        ],
+        "unknowns": []
+      },
+      {
+        "use_case": "programming",
+        "fit": "limited",
+        "score": 50,
+        "reasons": [
+          {
+            "tone": "bad",
+            "provenance": "inferred",
+            "text": "Intel Core i7, 7th gen, low-power: too slow for coding, builds and dev tools"
+          },
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "About 16 GB of memory: enough, but many apps or tabs at once will slow it down"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "Fast NVMe SSD, 1.0 TB"
+          },
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "Battery holds 74% of its original capacity: expect somewhat shorter time unplugged"
+          },
+          {
+            "tone": "good",
+            "provenance": "claimed",
+            "text": "2560×1440 screen: sharp and roomy"
+          }
+        ],
+        "unknowns": []
+      },
+      {
+        "use_case": "creative",
+        "fit": "limited",
+        "score": 50,
+        "reasons": [
+          {
+            "tone": "bad",
+            "provenance": "inferred",
+            "text": "Intel Core i7, 7th gen, low-power: too slow for photo editing and design"
+          },
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "About 16 GB of memory: enough, but many apps or tabs at once will slow it down"
+          },
+          {
+            "tone": "bad",
+            "provenance": "inferred",
+            "text": "Intel HD Graphics 620: too weak for photo editing and design"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "Fast NVMe SSD, 1.0 TB"
+          },
+          {
+            "tone": "good",
+            "provenance": "claimed",
+            "text": "2560×1440 screen: sharp and roomy"
+          },
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "Battery holds 74% of its original capacity: expect somewhat shorter time unplugged"
+          }
+        ],
+        "unknowns": []
+      },
+      {
+        "use_case": "video",
+        "fit": "poor",
+        "score": 40,
+        "reasons": [
+          {
+            "tone": "bad",
+            "provenance": "inferred",
+            "text": "Intel Core i7, 7th gen, low-power: too slow for video editing and 3D"
+          },
+          {
+            "tone": "bad",
+            "provenance": "inferred",
+            "text": "Intel HD Graphics 620: too weak for video editing and 3D"
+          },
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "About 16 GB of memory: enough, but many apps or tabs at once will slow it down"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "Fast NVMe SSD, 1.0 TB"
+          },
+          {
+            "tone": "good",
+            "provenance": "claimed",
+            "text": "2560×1440 screen: sharp and roomy"
+          }
+        ],
+        "unknowns": []
+      },
+      {
+        "use_case": "gaming",
+        "fit": "poor",
+        "score": 40,
+        "reasons": [
+          {
+            "tone": "bad",
+            "provenance": "inferred",
+            "text": "Intel HD Graphics 620: not made for gaming"
+          },
+          {
+            "tone": "bad",
+            "provenance": "inferred",
+            "text": "Intel Core i7, 7th gen, low-power: too slow for modern games"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "About 16 GB of memory: plenty for modern games"
+          },
+          {
+            "tone": "good",
+            "provenance": "measured",
+            "text": "Fast NVMe SSD, 1.0 TB"
+          },
+          {
+            "tone": "good",
+            "provenance": "claimed",
+            "text": "2560×1440 screen: sharp and roomy"
+          }
+        ],
+        "unknowns": []
+      }
+    ],
+    "best_for": [
+      "everyday",
+      "work",
+      "study"
+    ],
+    "tips": [
+      "This looks like an ex-company laptop. Ask the seller for proof it was released by its previous owner.",
+      "Scan again a few days later: a second scan makes the result much more reliable."
+    ]
+  },
   "record": {
     "id": 3,
-    "content_id": "0ae54f7eb65c6a91ac260be0bdf3c8d747b08a8e3fb2783a4c6f5a69d2f4d4ac",
+    "content_id": "12c5c6a713fe463a9f65f5528b70beb0509bb2b242a5828bbb08a2223ba4da92",
     "started_at": 1791302400,
     "stored_at": 1791302400,
     "origin": "live",
@@ -478,7 +795,7 @@
   "earlier": [
     {
       "id": 1,
-      "content_id": "67b8368572fcf16685fc486ac2624651d024ff8fbf52821fcf98ddc18d918481",
+      "content_id": "64a7b2c4a239290984b8627b06a3d8dc985694b6ce931a5e1b408ac12e827d6e",
       "started_at": 1790092800,
       "stored_at": 1790092800,
       "origin": "live",

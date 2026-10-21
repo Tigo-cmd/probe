@@ -17,21 +17,28 @@ use std::sync::Mutex;
 
 use hwprobe::fingerprint::Divergence;
 use hwprobe::grade::{self, Grade};
-use hwprobe::{report, Fingerprint, Scan};
+use hwprobe::{assess, report, Assessment, Fingerprint, Scan};
 use scanstore::{Origin, QueueCounts, Store, Summary};
 use serde::Serialize;
 use tauri::Manager;
 
-/// A scan with its grade, as the frontend receives it.
+/// A scan with its grade and assessment, as the frontend receives it.
 #[derive(Debug, Clone, Serialize)]
 pub struct Graded {
     pub scan: Scan,
     pub grade: Grade,
+    /// Condition score and fit for each kind of use, computed from the grade.
+    pub assessment: Assessment,
 }
 
 pub fn graded(scan: Scan) -> Graded {
     let grade = grade::grade(&scan);
-    Graded { scan, grade }
+    let assessment = assess(&scan, &grade);
+    Graded {
+        scan,
+        grade,
+        assessment,
+    }
 }
 
 /// A graded scan plus its place in the history.
@@ -39,6 +46,7 @@ pub fn graded(scan: Scan) -> Graded {
 pub struct Opened {
     pub scan: Scan,
     pub grade: Grade,
+    pub assessment: Assessment,
     /// The history row for this scan; `None` when the history is unavailable.
     pub record: Option<Summary>,
     /// Other stored scans that claim to be the same machine, newest first.
@@ -55,10 +63,15 @@ pub fn record(store: &mut Store, scan: Scan, origin: Origin) -> Result<Opened, S
 fn opened(store: &Store, scan: Scan, id: i64) -> Result<Opened, String> {
     let record = store.summary(id).map_err(|e| e.to_string())?;
     let earlier = store.same_machine(&scan).map_err(|e| e.to_string())?;
-    let Graded { scan, grade } = graded(scan);
+    let Graded {
+        scan,
+        grade,
+        assessment,
+    } = graded(scan);
     Ok(Opened {
         scan,
         grade,
+        assessment,
         record: Some(record),
         earlier,
         history_error: None,
@@ -66,10 +79,15 @@ fn opened(store: &Store, scan: Scan, id: i64) -> Result<Opened, String> {
 }
 
 fn unrecorded(scan: Scan, error: String) -> Opened {
-    let Graded { scan, grade } = graded(scan);
+    let Graded {
+        scan,
+        grade,
+        assessment,
+    } = graded(scan);
     Opened {
         scan,
         grade,
+        assessment,
         record: None,
         earlier: Vec::new(),
         history_error: Some(error),

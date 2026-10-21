@@ -88,6 +88,37 @@ work. Production builds drop that path, so a shipped app can only display data
 read from a machine. `src/lib/fixtures/demo.json` is produced by the Rust
 grader; a test fails when it drifts.
 
+### Condition score and advice for your use
+
+The report opens on a **condition score** out of 100, drawn as a ring, with a
+smaller ring for each area: drives, battery and ownership. Below it the buyer
+picks what the laptop is for (everyday, work, school, coding, photo, video,
+gaming) and sees a fit rating with its reasons, plus a bar chart ranking every
+use. Spec tiles, battery and drive charts follow, and every check the grader
+ran is still listed in full further down. The design follows Apple's Human
+Interface Guidelines and switches to dark mode with the system.
+
+Both come from `crates/hwprobe/src/assess.rs`, not the frontend, and follow
+the same rules as the grader:
+
+- **The score never contradicts the grade.** It is a weighted mean of the
+  areas (drives 45, battery 25, ownership 30), then capped by the headline:
+  red caps it at 39, amber at 79.
+- **Missing evidence is left out, not counted as full marks.** An area that
+  could not be read is named and excluded; the report says "based on 2 of 3
+  areas". With no evidence there is no score.
+- **Condition limits every use.** A management lock makes every use
+  "Do not buy yet"; a failing drive caps every use at 25.
+- **Estimates are labelled.** Processor and graphics performance tiers come
+  from model names, which are claims, so those reasons are tagged inferred.
+  The thresholds are this app's own conventions, versioned as
+  `ASSESS_VERSION`.
+
+Scans now also record graphics adapters (Linux via sysfs and the system's
+`pci.ids`, Windows via SetupAPI, macOS via `system_profiler`). Scans saved
+before this have none and still load; the graphics part of the advice then
+says it was not recorded.
+
 ## Full scans without running the app as administrator
 
 Serials, drive health and firmware tables need administrator rights. The app
@@ -181,6 +212,9 @@ there is still nothing to install. The rules:
 - **Fingerprint** (`fingerprint.rs`). Composite of SMBIOS UUID, board and system
   serial, drive and battery serials, and MACs. Divergence between scans is the
   tamper signal.
+- **Assessment** (`assess.rs`, versioned as `ASSESS_VERSION`). Condition score
+  capped by the grade, and fit for seven kinds of use from processor and
+  graphics tiers, memory, storage, screen and battery. See above.
 - **Report** (`report.rs`). Plain-text rendering that states coverage ("no faults
   detected in N checks"), lists not-assessable checks by name, and carries the
   standing caveats (the ~36% of failed drives with no SMART errors, single

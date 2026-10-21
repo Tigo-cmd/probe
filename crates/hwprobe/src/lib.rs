@@ -9,6 +9,7 @@
 //! println!("{}", hwprobe::report::render(&scan, &grade));
 //! ```
 
+pub mod assess;
 pub mod backend;
 pub mod fingerprint;
 pub mod grade;
@@ -16,6 +17,7 @@ pub mod model;
 pub mod parse;
 pub mod report;
 
+pub use assess::{assess, Assessment};
 pub use backend::{is_elevated, scan};
 pub use fingerprint::Fingerprint;
 pub use grade::{Grade, Verdict};

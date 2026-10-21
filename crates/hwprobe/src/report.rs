@@ -6,6 +6,7 @@
 
 use std::fmt::Write;
 
+use crate::assess::{self, Fit, UseCase};
 use crate::grade::{Axis, Grade, Verdict};
 use crate::model::*;
 
@@ -54,6 +55,57 @@ fn render_into(o: &mut String, scan: &Scan, grade: &Grade) -> std::fmt::Result {
             axis_label(a.axis),
             verdict_label(a.verdict)
         )?;
+    }
+
+    let assessment = assess::assess(scan, grade);
+    let c = &assessment.condition;
+    match c.score {
+        Some(score) => {
+            let partial = if c.scored_areas < c.areas.len() {
+                format!(" (from {} of {} areas)", c.scored_areas, c.areas.len())
+            } else {
+                String::new()
+            };
+            let cap = c
+                .cap
+                .map(|cap| format!(", held to {cap} by the overall result"))
+                .unwrap_or_default();
+            writeln!(o, "\nCONDITION SCORE  {score}/100{partial}{cap}")?;
+        }
+        None => writeln!(o, "\nCONDITION SCORE  not scored: no area had evidence")?,
+    }
+    for a in &c.areas {
+        let score = a
+            .score
+            .map(|s| format!("{s:>3}"))
+            .unwrap_or_else(|| "  -".into());
+        writeln!(o, "  {:<12} {score}  {}", axis_label(a.axis), a.summary)?;
+    }
+
+    writeln!(
+        o,
+        "\nSUITED FOR  (estimates; processor and graphics rated from model names)"
+    )?;
+    for u in &assessment.uses {
+        let score = u
+            .score
+            .map(|s| format!("{s:>3}"))
+            .unwrap_or_else(|| "  -".into());
+        writeln!(
+            o,
+            "  {:<22} {:<8} {score}",
+            use_label(u.use_case),
+            fit_label(u.fit)
+        )?;
+        if let Some(r) = u.reasons.first() {
+            writeln!(o, "      {} {}", tag(r.provenance), r.text)?;
+        }
+    }
+    if !assessment.tips.is_empty() {
+        writeln!(o, "\nNEXT STEPS")?;
+        for t in &assessment.tips {
+            writeln!(o, "  · {t}")?;
+        }
     }
 
     for a in &grade.axes {
@@ -122,6 +174,17 @@ fn render_into(o: &mut String, scan: &Scan, grade: &Grade) -> std::fmt::Result {
         field(o, "Cycles", &b.cycle_count)?;
     }
 
+    for g in &scan.gpus {
+        writeln!(o, "\nGRAPHICS")?;
+        field(o, "Name", &g.name)?;
+        field(
+            o,
+            "Video memory",
+            &g.vram_bytes
+                .map(|b| format!("{:.1} GB", *b as f64 / (1u64 << 30) as f64)),
+        )?;
+    }
+
     for d in &scan.displays {
         let res = match (d.native_width, d.native_height) {
             (Some(w), Some(h)) => format!("{w}×{h}"),
@@ -182,6 +245,29 @@ pub fn axis_label(a: Axis) -> &'static str {
         Axis::Function => "Function",
         Axis::Battery => "Battery",
         Axis::Encumbrance => "Encumbrance",
+    }
+}
+
+pub fn use_label(u: UseCase) -> &'static str {
+    match u {
+        UseCase::Everyday => "Everyday use",
+        UseCase::Work => "Office and video calls",
+        UseCase::Study => "School and travel",
+        UseCase::Programming => "Programming",
+        UseCase::Creative => "Photo and design",
+        UseCase::Video => "Video editing and 3D",
+        UseCase::Gaming => "Gaming",
+    }
+}
+
+pub fn fit_label(f: Fit) -> &'static str {
+    match f {
+        Fit::Great => "GREAT",
+        Fit::Good => "GOOD",
+        Fit::Limited => "LIMITED",
+        Fit::Poor => "POOR",
+        Fit::Blocked => "BLOCKED",
+        Fit::Unknown => "UNKNOWN",
     }
 }
 

@@ -119,6 +119,11 @@ pub struct Scan {
     pub batteries: Vec<Battery>,
     pub storage: Vec<Drive>,
     pub displays: Vec<Display>,
+    /// Graphics adapters. Added after schema 1 shipped: older scans have none
+    /// and still load, and an empty list is not written so their JSON (and
+    /// so their content id in the scan history) is unchanged.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub gpus: Vec<Gpu>,
     pub network: Vec<NetworkInterface>,
     pub encumbrance: Vec<EncumbranceSignal>,
     /// Problems encountered while probing; a failed read is recorded, never hidden.
@@ -338,6 +343,18 @@ pub struct Display {
     pub manufacture_year: Option<u16>,
     pub native_width: Option<u16>,
     pub native_height: Option<u16>,
+}
+
+/// A graphics adapter. Its name comes from the driver or a PCI ID table and
+/// is a claim; whether it is integrated or discrete is inferred from it.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Gpu {
+    pub name: Field<String>,
+    /// PCI vendor and device as `vvvv:dddd` in lower-case hex, when known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pci_id: Option<String>,
+    /// Dedicated video memory, when the driver reports it.
+    pub vram_bytes: Field<u64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

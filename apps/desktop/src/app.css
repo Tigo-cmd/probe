@@ -1,58 +1,88 @@
-/* Design tokens. Verdict colours always come with a text label: colour is
-   never the only carrier of a result. No web fonts: the app runs offline. */
+/* Design tokens, after Apple's Human Interface Guidelines: the system font,
+   a soft grey canvas, white cards with generous radii, and the system
+   colours. Verdict colours always come with a text label: colour is never
+   the only carrier of a result. No web fonts: the app runs offline. */
 
 :root {
   color-scheme: light;
-  --bg: #f4f5f7;
+  --bg: #f5f5f7;
   --surface: #ffffff;
-  --surface-2: #f8f9fb;
-  --border: #e1e4ea;
-  --text: #17202a;
-  --text-2: #4b5563;
-  --text-3: #6b7280;
-  --accent: #1d2a36;
+  --surface-2: #f5f5f7;
+  --surface-3: #e8e8ed;
+  --border: rgba(0, 0, 0, 0.08);
+  --separator: rgba(60, 60, 67, 0.12);
+  --text: #1d1d1f;
+  --text-2: #424245;
+  --text-3: #6e6e73;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
   --accent-text: #ffffff;
-  --focus: #2563eb;
+  --accent-soft: rgba(0, 113, 227, 0.1);
+  --focus: #0071e3;
 
-  --green: #1f8a5b;
-  --green-bg: #e7f5ee;
-  --amber: #a5660b;
-  --amber-bg: #fdf3e2;
-  --red: #c0352c;
-  --red-bg: #fbebea;
-  --grey: #5b6472;
-  --grey-bg: #eef0f3;
+  /* Fills are the system colours; text tones are darkened for contrast. */
+  --green: #248a3d;
+  --green-fill: #34c759;
+  --green-bg: rgba(52, 199, 89, 0.12);
+  --amber: #b25000;
+  --amber-fill: #ff9500;
+  --amber-bg: rgba(255, 149, 0, 0.14);
+  --red: #d70015;
+  --red-fill: #ff3b30;
+  --red-bg: rgba(255, 59, 48, 0.12);
+  --grey: #6e6e73;
+  --grey-fill: #aeaeb2;
+  --grey-bg: rgba(142, 142, 147, 0.14);
+  --blue-fill: #0a84ff;
+  --indigo-fill: #5e5ce6;
+  --teal-fill: #30b0c7;
+  --track: rgba(120, 120, 128, 0.16);
 
-  --radius: 10px;
-  --radius-sm: 6px;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.06);
-  --font: system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
+  --radius-lg: 22px;
+  --radius: 18px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 1px rgba(0, 0, 0, 0.02), 0 4px 18px rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.1);
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI Variable Text',
+    'Segoe UI', system-ui, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display',
+    'Segoe UI', system-ui, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', sans-serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #0f1419;
-    --surface: #171d24;
-    --surface-2: #1c232b;
-    --border: #2a333d;
-    --text: #e8ebef;
-    --text-2: #b4bcc6;
-    --text-3: #8b95a1;
-    --accent: #e8ebef;
-    --accent-text: #0f1419;
-    --focus: #60a5fa;
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --surface-2: #2c2c2e;
+    --surface-3: #3a3a3c;
+    --border: rgba(255, 255, 255, 0.08);
+    --separator: rgba(84, 84, 88, 0.6);
+    --text: #f5f5f7;
+    --text-2: #d1d1d6;
+    --text-3: #98989d;
+    --accent: #0a84ff;
+    --accent-hover: #409cff;
+    --accent-soft: rgba(10, 132, 255, 0.18);
+    --focus: #409cff;
 
-    --green: #4cc38a;
-    --green-bg: #12291f;
-    --amber: #e8a948;
-    --amber-bg: #2e2412;
-    --red: #f07a70;
-    --red-bg: #321816;
-    --grey: #a2abb6;
-    --grey-bg: #222a33;
+    --green: #30d158;
+    --green-fill: #30d158;
+    --green-bg: rgba(48, 209, 88, 0.16);
+    --amber: #ff9f0a;
+    --amber-fill: #ff9f0a;
+    --amber-bg: rgba(255, 159, 10, 0.16);
+    --red: #ff453a;
+    --red-fill: #ff453a;
+    --red-bg: rgba(255, 69, 58, 0.16);
+    --grey: #98989d;
+    --grey-fill: #636366;
+    --grey-bg: rgba(142, 142, 147, 0.2);
+    --track: rgba(120, 120, 128, 0.32);
     --shadow: none;
+    --shadow-lift: 0 12px 32px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -69,8 +99,10 @@ body {
   color: var(--text);
   font-family: var(--font);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.47;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -80,47 +112,78 @@ p {
   margin: 0;
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
 button {
   font: inherit;
+  letter-spacing: inherit;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border-radius: 980px;
+  border: none;
+  background: var(--surface-3);
   color: var(--text);
-  padding: 7px 14px;
-  font-weight: 550;
-  transition: background 120ms, border-color 120ms;
+  padding: 7px 16px;
+  font-weight: 500;
+  transition:
+    background 150ms var(--ease),
+    transform 150ms var(--ease),
+    opacity 150ms var(--ease);
 }
 
 button:hover {
-  background: var(--surface-2);
-  border-color: var(--text-3);
+  background: color-mix(in srgb, var(--surface-3) 80%, var(--text) 8%);
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 button.primary {
   background: var(--accent);
-  border-color: var(--accent);
   color: var(--accent-text);
 }
 
 button.primary:hover {
-  opacity: 0.9;
+  background: var(--accent-hover);
+}
+
+button.plain {
+  background: none;
+  color: var(--accent);
+  padding: 4px 6px;
+}
+
+button.plain:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 button:focus-visible,
-summary:focus-visible {
-  outline: 2px solid var(--focus);
+summary:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus) 55%, transparent);
   outline-offset: 2px;
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
+  transform: none;
+}
+
+a {
+  color: var(--accent);
 }
 
 .mono {
   font-family: var(--mono);
   font-size: 0.92em;
+  letter-spacing: 0;
 }
 
 .muted {
@@ -131,11 +194,47 @@ button:disabled {
   color: var(--text-3);
 }
 
+.small {
+  font-size: 13px;
+}
+
+.tiny {
+  font-size: 12px;
+}
+
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card {
+    border: 1px solid var(--border);
+  }
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {

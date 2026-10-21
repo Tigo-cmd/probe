@@ -25,6 +25,44 @@ pub fn utf16_string(raw: &[u8]) -> Option<String> {
     (!s.is_empty()).then_some(s)
 }
 
+// ---------------------------------------------------------------- graphics
+
+/// A device description as SetupAPI may return it: plain, or an indirect
+/// `@oem12.inf,%dev.25a2%;NVIDIA GeForce RTX 3050 Laptop GPU` whose fallback
+/// text follows the last `;`. Trademark marks are dropped for readability.
+pub fn device_description(raw: &str) -> Option<String> {
+    let text = if raw.starts_with('@') {
+        raw.rsplit_once(';').map(|(_, t)| t)?
+    } else {
+        raw
+    };
+    let cleaned = text
+        .replace("(R)", "")
+        .replace("(TM)", "")
+        .replace("(tm)", "");
+    let s = cleaned.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!s.is_empty()).then_some(s)
+}
+
+/// `PCI\VEN_10DE&DEV_25A2&SUBSYS_...` → `(0x10de, 0x25a2)`.
+pub fn pci_ids_from_instance(instance: &str) -> Option<(u16, u16)> {
+    let rest = instance
+        .get(..4)?
+        .eq_ignore_ascii_case("PCI\\")
+        .then(|| &instance[4..])?;
+    let mut vendor = None;
+    let mut device = None;
+    for part in rest.split(['&', '\\']) {
+        let hex = |p: &str| u16::from_str_radix(p.get(4..8)?, 16).ok();
+        match part.get(..4).map(|p| p.to_ascii_uppercase()) {
+            Some(k) if k == "VEN_" => vendor = hex(part),
+            Some(k) if k == "DEV_" => device = hex(part),
+            _ => {}
+        }
+    }
+    Some((vendor?, device?))
+}
+
 // ----------------------------------------------------------------- storage
 
 /// `STORAGE_BUS_TYPE` values that matter for grading.
@@ -201,6 +239,36 @@ pub fn count_processor_cores(buf: &[u8], pointer_width: usize) -> (u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_graphics_descriptions_and_pci_ids() {
+        assert_eq!(
+            device_description("@oem12.inf,%nvidia_dev.25a2%;NVIDIA GeForce RTX 3050 Laptop GPU")
+                .as_deref(),
+            Some("NVIDIA GeForce RTX 3050 Laptop GPU")
+        );
+        assert_eq!(
+            device_description("Intel(R) Iris(R) Xe Graphics").as_deref(),
+            Some("Intel Iris Xe Graphics")
+        );
+        assert_eq!(device_description("@oem.inf,%x%"), None);
+        assert_eq!(device_description("  "), None);
+        assert_eq!(
+            pci_ids_from_instance("PCI\\VEN_10DE&DEV_25A2&SUBSYS_3A5E17AA&REV_A1\\4&1"),
+            Some((0x10de, 0x25a2))
+        );
+        assert_eq!(pci_ids_from_instance("ROOT\\BasicDisplay\\0000"), None);
+        for junk in [
+            "",
+            "PCI",
+            "PCI\\",
+            "PCI\\VEN_&DEV_",
+            "PCI\\VEN_ZZZZ&DEV_1",
+            "pci\\ven_8086",
+        ] {
+            let _ = pci_ids_from_instance(junk);
+        }
+    }
 
     fn descriptor(bus: u32, serial: &str) -> Vec<u8> {
         let mut b = vec![0u8; 40];

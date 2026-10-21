@@ -7,23 +7,29 @@
 
 <style>
   .badge {
-    display: inline-block;
-    font-weight: 650;
-    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
     border-radius: 999px;
     white-space: nowrap;
-    border: 1px solid transparent;
     justify-self: start;
+    letter-spacing: 0;
+  }
+  .badge::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
   }
   .sm {
     font-size: 12px;
-    padding: 1px 9px;
-    min-width: 84px;
-    text-align: center;
+    padding: 2px 9px 2px 8px;
   }
   .lg {
     font-size: 14px;
-    padding: 3px 12px;
+    padding: 4px 12px 4px 10px;
   }
   .green {
     color: var(--green);
@@ -40,6 +46,11 @@
   .not_graded {
     color: var(--grey);
     background: var(--grey-bg);
-    border-color: var(--border);
+  }
+  .not_graded::before {
+    background: none;
+    border: 1.5px solid currentColor;
+    width: 5px;
+    height: 5px;
   }
 </style>

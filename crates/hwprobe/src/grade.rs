@@ -2,7 +2,9 @@
 //!
 //! Three separate axes (function, battery, encumbrance), each with its own
 //! verdict. The headline is the worst axis: a perfect CPU never averages away
-//! a drive with pending sectors. There is no weighted score.
+//! a drive with pending sectors. The grade itself has no weighted score;
+//! the condition score in [`crate::assess`] is derived from it and capped by
+//! the headline, so it can never read better than the grade.
 //!
 //! Every grade carries [`GRADER_VERSION`]. Grades from different versions are
 //! not comparable; bump the version whenever a rule or threshold changes.

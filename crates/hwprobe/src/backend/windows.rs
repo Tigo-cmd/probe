@@ -18,9 +18,10 @@ use std::time::Instant;
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
     SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiEnumDeviceInterfaces,
     SetupDiGetClassDevsW, SetupDiGetDeviceInstanceIdW, SetupDiGetDeviceInterfaceDetailW,
-    SetupDiOpenDevRegKey, DICS_FLAG_GLOBAL, DIGCF_DEVICEINTERFACE, DIGCF_PRESENT, DIREG_DEV,
-    GUID_DEVCLASS_BATTERY, GUID_DEVCLASS_MONITOR, HDEVINFO, SP_DEVICE_INTERFACE_DATA,
-    SP_DEVICE_INTERFACE_DETAIL_DATA_W, SP_DEVINFO_DATA,
+    SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDevRegKey, DICS_FLAG_GLOBAL,
+    DIGCF_DEVICEINTERFACE, DIGCF_PRESENT, DIREG_DEV, DIREG_DRV, GUID_DEVCLASS_BATTERY,
+    GUID_DEVCLASS_DISPLAY, GUID_DEVCLASS_MONITOR, HDEVINFO, SPDRP_DEVICEDESC,
+    SP_DEVICE_INTERFACE_DATA, SP_DEVICE_INTERFACE_DETAIL_DATA_W, SP_DEVINFO_DATA,
 };
 use windows_sys::Win32::Foundation::{
     CloseHandle, ERROR_ACCESS_DENIED, ERROR_FILE_NOT_FOUND, ERROR_NOT_FOUND, ERROR_NO_MORE_ITEMS,
@@ -38,7 +39,7 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 use windows_sys::Win32::System::Registry::{
     RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE,
-    KEY_READ, KEY_WOW64_64KEY, REG_BINARY, REG_DWORD, REG_EXPAND_SZ, REG_SZ,
+    KEY_READ, KEY_WOW64_64KEY, REG_BINARY, REG_DWORD, REG_EXPAND_SZ, REG_QWORD, REG_SZ,
 };
 use windows_sys::Win32::System::SystemInformation::{
     EnumSystemFirmwareTables, GetLogicalProcessorInformationEx, GetSystemFirmwareTable,
@@ -84,6 +85,7 @@ impl WindowsBackend {
             batteries: batteries(&mut notes),
             storage: storage(&mut notes),
             displays: displays(&mut notes),
+            gpus: gpus(&mut notes),
             network: network(&mut notes),
             encumbrance: encumbrance(&identity, &mut notes),
             identity,
@@ -653,6 +655,90 @@ fn displays(notes: &mut Vec<ProbeNote>) -> Vec<Display> {
         }
     }
     out
+}
+
+// ---------------------------------------------------------------- graphics
+
+/// PCI display adapters, named by their installed driver. Remote, indirect
+/// and other non-PCI display devices are skipped.
+fn gpus(notes: &mut Vec<ProbeNote>) -> Vec<Gpu> {
+    let mut out = Vec::new();
+    let Some(set) = DevInfo::new(&GUID_DEVCLASS_DISPLAY, DIGCF_PRESENT) else {
+        notes.push(note("gpu", "display adapters not enumerable"));
+        return out;
+    };
+    for i in 0.. {
+        // SAFETY: SP_DEVINFO_DATA is plain data; cbSize is set before use.
+        let mut info: SP_DEVINFO_DATA = unsafe { zeroed() };
+        info.cbSize = size_of::<SP_DEVINFO_DATA>() as u32;
+        // SAFETY: set is a live device information set.
+        if unsafe { SetupDiEnumDeviceInfo(set.0, i, &mut info) } == 0 {
+            break;
+        }
+        let Some((vendor, device)) =
+            instance_id(&set, &info).and_then(|id| winioctl::pci_ids_from_instance(&id))
+        else {
+            continue;
+        };
+        let src = "setupapi:SPDRP_DEVICEDESC";
+        let name = match device_property(&set, &info, SPDRP_DEVICEDESC)
+            .and_then(|d| winioctl::device_description(&d))
+        {
+            Some(n) => Field::claimed(Some(super::gpu_name(super::gpu_vendor(vendor), &n)), src),
+            None => Field::claimed(
+                super::gpu_vendor(vendor).map(|v| format!("{v} graphics")),
+                src,
+            )
+            .with_note("the driver gives no device description"),
+        };
+        // SAFETY: set and info are live; the returned key is closed by Key.
+        let key =
+            unsafe { SetupDiOpenDevRegKey(set.0, &info, DICS_FLAG_GLOBAL, 0, DIREG_DRV, KEY_READ) };
+        let vram = (!std::ptr::eq(key, INVALID_HANDLE_VALUE) && !key.is_null())
+            .then(|| Key(key))
+            .and_then(|k| {
+                let bytes = |name: &str| match k.value(name)? {
+                    (REG_QWORD, b) if b.len() >= 8 => {
+                        Some(u64::from_le_bytes(b[..8].try_into().ok()?))
+                    }
+                    (REG_DWORD | REG_BINARY, b) if b.len() >= 4 => {
+                        Some(u32::from_le_bytes(b[..4].try_into().ok()?) as u64)
+                    }
+                    _ => None,
+                };
+                bytes("HardwareInformation.qwMemorySize")
+                    .or_else(|| bytes("HardwareInformation.MemorySize"))
+            });
+        out.push(Gpu {
+            name,
+            pci_id: Some(format!("{vendor:04x}:{device:04x}")),
+            vram_bytes: Field::claimed(
+                vram.filter(|&v| v > 0),
+                "registry:HardwareInformation.qwMemorySize",
+            ),
+        });
+    }
+    out
+}
+
+fn device_property(set: &DevInfo, info: &SP_DEVINFO_DATA, property: u32) -> Option<String> {
+    let mut buf = [0u8; 1024];
+    let (mut kind, mut need) = (0u32, 0u32);
+    // SAFETY: buf holds the stated number of bytes.
+    let ok = unsafe {
+        SetupDiGetDeviceRegistryPropertyW(
+            set.0,
+            info,
+            property,
+            &mut kind,
+            buf.as_mut_ptr(),
+            buf.len() as u32,
+            &mut need,
+        )
+    };
+    (ok != 0 && kind == REG_SZ)
+        .then(|| winioctl::utf16_string(&buf[..(need as usize).min(buf.len())]))
+        .flatten()
 }
 
 fn instance_id(set: &DevInfo, info: &SP_DEVINFO_DATA) -> Option<String> {

@@ -129,6 +129,7 @@
     color: var(--accent-text);
     text-align: center;
     font-size: 13px;
-    padding: 4px 12px;
+    font-weight: 500;
+    padding: 6px 12px;
   }
 </style>

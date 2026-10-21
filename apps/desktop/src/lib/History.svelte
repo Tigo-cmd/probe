@@ -11,7 +11,7 @@
 <section class="card history" aria-labelledby="history-title">
   <div class="head">
     <div>
-      <h2 id="history-title">Scan history</h2>
+      <h2 id="history-title" class="section-title">Your scans</h2>
       <p class="faint small">{historyLine(history.counts)}</p>
     </div>
   </div>
@@ -58,18 +58,14 @@
 
 <style>
   .history {
-    padding: 18px 20px;
+    padding: 24px 26px;
     display: grid;
-    gap: 12px;
+    gap: 14px;
   }
   .head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-  }
-  h2 {
-    font-size: 16px;
-    font-weight: 650;
   }
   .small {
     font-size: 13px;
@@ -87,7 +83,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--separator);
     padding: 4px 0;
   }
   li:first-child {
@@ -100,15 +96,14 @@
     gap: 16px;
     align-items: center;
     text-align: left;
-    border: 1px solid transparent;
+    border-radius: 12px;
     background: transparent;
-    padding: 8px 10px;
+    padding: 10px 12px;
     font-weight: 400;
     min-width: 0;
   }
   .row:hover {
     background: var(--surface-2);
-    border-color: var(--border);
   }
   .when,
   .what,
@@ -129,7 +124,6 @@
     white-space: nowrap;
   }
   .ghost {
-    border-color: transparent;
     background: transparent;
     color: var(--text-3);
     font-weight: 500;
@@ -145,14 +139,14 @@
     padding: 4px 10px;
   }
   .danger {
-    color: var(--red);
-    border-color: color-mix(in srgb, var(--red) 40%, transparent);
+    color: #fff;
+    background: var(--red-fill);
   }
   .error {
     color: var(--red);
     background: var(--red-bg);
-    padding: 8px 12px;
-    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    border-radius: 12px;
   }
   .where {
     overflow-wrap: anywhere;

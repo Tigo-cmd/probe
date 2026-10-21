@@ -215,6 +215,57 @@ pub fn drives(profiler: &Value) -> Vec<Drive> {
     out
 }
 
+// ---------------------------------------------------------------- graphics
+
+const DISPLAYS_SRC: &str = "system_profiler:SPDisplaysDataType";
+
+/// Graphics adapters from `system_profiler -xml SPDisplaysDataType`.
+pub fn gpus(profiler: &Value) -> Vec<Gpu> {
+    profiler_items(profiler, "SPDisplaysDataType")
+        .iter()
+        .filter_map(|item| {
+            let name = clean(item.get("sppci_model")).or_else(|| clean(item.get("_name")))?;
+            // "NVIDIA (0x10de)" or "sppci_vendor_Apple"; the device is "0x67ef".
+            let vendor = item
+                .get("spdisplays_vendor")
+                .and_then(Value::text)
+                .and_then(|v| hex_id(v.rsplit_once("(0x")?.1.trim_end_matches(')')));
+            let device = item
+                .get("spdisplays_device-id")
+                .and_then(Value::text)
+                .and_then(|d| hex_id(d.trim().trim_start_matches("0x")));
+            let vram = ["spdisplays_vram", "spdisplays_vram_shared"]
+                .iter()
+                .find_map(|k| {
+                    item.get(k)
+                        .and_then(Value::text)
+                        .and_then(|v| size_text(&v))
+                });
+            Some(Gpu {
+                name: Field::claimed(Some(name), format!("{DISPLAYS_SRC}/sppci_model")),
+                pci_id: vendor.zip(device).map(|(v, d)| format!("{v:04x}:{d:04x}")),
+                vram_bytes: Field::claimed(vram, format!("{DISPLAYS_SRC}/spdisplays_vram")),
+            })
+        })
+        .collect()
+}
+
+fn hex_id(s: &str) -> Option<u16> {
+    u16::from_str_radix(s, 16).ok()
+}
+
+/// `"4 GB"` or `"1536 MB"` → bytes.
+fn size_text(s: &str) -> Option<u64> {
+    let (n, unit) = s.trim().split_once(' ')?;
+    let n: u64 = n.parse().ok()?;
+    let scale = match unit.trim().to_ascii_uppercase().as_str() {
+        "MB" => 1 << 20,
+        "GB" => 1 << 30,
+        _ => return None,
+    };
+    n.checked_mul(scale).filter(|&b| b > 0)
+}
+
 // ---------------------------------------------------------- network, display
 
 /// Burned-in MACs from `ioreg -a -r -c IOEthernetController`. Wi-Fi
@@ -403,6 +454,7 @@ mod sys {
                 })
                 .unwrap_or_default();
             let storage = profiler.as_ref().map(drives).unwrap_or_default();
+            let gpus = profiler.as_ref().map(super::gpus).unwrap_or_default();
             for d in &storage {
                 if let DriveHealth::Unavailable { reason } = &d.health {
                     notes.push(note(&format!("storage/{}", d.name), reason));
@@ -435,6 +487,7 @@ mod sys {
                 batteries,
                 storage,
                 displays,
+                gpus,
                 network,
                 encumbrance,
                 ..Scan::default()
@@ -564,6 +617,7 @@ mod sys {
                 "SPiBridgeDataType",
                 "SPNVMeDataType",
                 "SPSerialATADataType",
+                "SPDisplaysDataType",
             ],
         )
         .and_then(|text| plist::parse(&text).map_err(|e| e.to_string()));
@@ -649,6 +703,30 @@ mod tests {
 
     fn plist(body: &str) -> Value {
         parse(&format!("<plist version=\"1.0\">{body}</plist>")).unwrap()
+    }
+
+    #[test]
+    fn reads_graphics_adapters() {
+        let p = plist(
+            "<array><dict><key>_dataType</key><string>SPDisplaysDataType</string>\
+             <key>_items</key><array>\
+               <dict><key>sppci_model</key><string>Apple M1 Pro</string>\
+                     <key>spdisplays_vendor</key><string>sppci_vendor_Apple</string></dict>\
+               <dict><key>sppci_model</key><string>AMD Radeon Pro 5500M</string>\
+                     <key>spdisplays_vendor</key><string>AMD (0x1002)</string>\
+                     <key>spdisplays_device-id</key><string>0x7340</string>\
+                     <key>spdisplays_vram</key><string>4 GB</string></dict>\
+               <dict><key>spdisplays_vram</key><string>junk</string></dict>\
+             </array></dict></array>",
+        );
+        let g = gpus(&p);
+        assert_eq!(g.len(), 2, "an item without a model is skipped");
+        assert_eq!(g[0].name.value.as_deref(), Some("Apple M1 Pro"));
+        assert_eq!(g[0].pci_id, None);
+        assert_eq!(g[1].pci_id.as_deref(), Some("1002:7340"));
+        assert_eq!(g[1].vram_bytes.value, Some(4 << 30));
+        assert_eq!(size_text("1536 MB"), Some(1536 << 20));
+        assert_eq!(size_text("lots"), None);
     }
 
     #[test]

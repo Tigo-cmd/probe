@@ -244,6 +244,21 @@
       "native_height": 1440
     }
   ],
+  "gpus": [
+    {
+      "name": {
+        "value": "Intel HD Graphics 620",
+        "provenance": "claimed",
+        "source": "setupapi:SPDRP_DEVICEDESC"
+      },
+      "pci_id": "8086:5916",
+      "vram_bytes": {
+        "value": 134217728,
+        "provenance": "claimed",
+        "source": "registry:HardwareInformation.qwMemorySize"
+      }
+    }
+  ],
   "network": [
     {
       "name": "Wi-Fi",
