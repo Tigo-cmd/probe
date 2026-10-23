@@ -464,6 +464,9 @@ fn fail(status: StatusCode, message: impl Into<String>) -> Response {
 }
 
 /// Run a database call off the async runtime.
+// The error is the finished HTTP reply, handed straight back by handlers;
+// boxing it would only add indirection on the error path.
+#[allow(clippy::result_large_err)]
 async fn with_db<T: Send + 'static>(
     db: &Shared,
     f: impl FnOnce(&mut Db) -> Result<T> + Send + 'static,
@@ -491,6 +494,7 @@ fn bearer(headers: &HeaderMap) -> Option<String> {
 }
 
 /// The device behind the request's token, or a 401 response.
+#[allow(clippy::result_large_err)]
 async fn authenticate(
     db: &Shared,
     headers: &HeaderMap,
