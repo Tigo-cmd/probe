@@ -10,6 +10,7 @@
     openStored,
     privilegeStatus,
     runScan,
+    teamStatus,
   } from './lib/api.js';
   import { scanFailure } from './lib/present.js';
 
@@ -20,6 +21,7 @@
   let error = $state('');
   let history = $state(null);
   let privilege = $state(null);
+  let team = $state(null);
   /** True while the report shows a live scan of this machine. */
   let live = $state(false);
 
@@ -31,6 +33,9 @@
     }
   }
   refreshHistory();
+  teamStatus()
+    .then((t) => (team = t))
+    .catch(() => (team = null));
   privilegeStatus()
     .then((p) => (privilege = p))
     .catch(() => (privilege = null));
@@ -109,6 +114,7 @@
     {origin}
     onback={back}
     onrescan={live && privilege?.can_elevate && !opened.scan.elevated ? () => scan({ full: true }) : null}
+    {team}
   />
 {:else}
   <Home
@@ -120,6 +126,9 @@
     onopenstored={openFromHistory}
     ondeletestored={removeFromHistory}
     {error}
+    {team}
+    onteamchange={(t) => (team = t)}
+    onsynced={refreshHistory}
   />
 {/if}
 

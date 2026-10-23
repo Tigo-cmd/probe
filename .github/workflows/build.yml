@@ -7,7 +7,7 @@ name: Test builds
 on:
   workflow_dispatch:
   push:
-    branches: [claude/exciting-turing-eknlmu]
+    branches: [claude/exciting-turing-eknlmu, claude/jolly-rubin-5n5nal]
 
 jobs:
   build:
@@ -50,16 +50,17 @@ jobs:
         run: |
           npm ci
           npx tauri build ${{ matrix.tauri_args }}
-      - name: Build the command-line tool
+      - name: Build the command-line tool and the team server
         shell: bash
         run: |
-          cargo build --release -p hwprobe-cli
+          cargo build --release -p hwprobe-cli -p probe-sync
           mkdir -p cli
           # tar keeps the executable bit, which artifact zips drop.
           if [ "${{ runner.os }}" = "Windows" ]; then
-            cp target/release/hwprobe.exe cli/
+            cp target/release/hwprobe.exe target/release/probe-sync.exe cli/
           else
             tar -czf cli/hwprobe-${{ matrix.name }}.tar.gz -C target/release hwprobe
+            tar -czf cli/probe-sync-${{ matrix.name }}.tar.gz -C target/release probe-sync
           fi
       - uses: actions/upload-artifact@v4
         with:

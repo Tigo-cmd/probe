@@ -16,9 +16,10 @@ serials exists, and the report says so.
 | `crates/hwprobe-cli` | `hwprobe`, the technician CLI and CI harness, built on the core. |
 | `crates/scanstore` | Local scan history and sync queue (SQLite, compiled in). |
 | `crates/elevate` | Runs one command with administrator rights through the OS's own prompt. |
+| `crates/probe-sync` | `probe-sync`, the self-hosted team server that shared scans sync to. |
+| `crates/syncclient` | The client the app uses to upload queued scans and query the team server. |
 | `apps/desktop` | The desktop app: Tauri 2 shell (`src-tauri`) and Svelte 5 frontend (`src`). |
 
-Planned, not yet in this repo: the sync backend.
 
 ## Testing on a real laptop
 
@@ -143,13 +144,51 @@ The mechanism is `crates/elevate`; its quoting (AppleScript, Windows command
 lines) and outcome rules are tested on every OS. The Linux path was run end to
 end here: an unprivileged user, a real `pkexec`, granted and refused.
 
+## Team sharing (probe-sync)
+
+A shop or team can run one server so its computers share scans and can ask
+"has anyone here scanned this laptop before?" Nothing is shared by
+connecting: each scan is shared from its report, by choice.
+
+Run the server on any machine (one binary, SQLite compiled in):
+
+```sh
+cargo build --release -p probe-sync
+./target/release/probe-sync token add "Front desk"   # prints a token once
+./target/release/probe-sync serve --db probe-sync.sqlite3 --listen 127.0.0.1:8640
+```
+
+It speaks plain HTTP on localhost. To reach it from other computers, put it
+behind a TLS reverse proxy (for example Caddy: `reverse_proxy 127.0.0.1:8640`);
+the app refuses plain HTTP except to localhost, because scans contain serial
+numbers. In the app, open Team sharing on the home screen and enter the server
+address and the token. `probe-sync token list` shows devices and
+`probe-sync token revoke NAME` cuts one off.
+
+The API (`/v1`, every call but `health` needs `Authorization: Bearer TOKEN`):
+
+| Call | What it does |
+| --- | --- |
+| `GET /v1/health` | Server and grader versions, and which device the token belongs to |
+| `PUT /v1/scans/{content_id}` | Upload a scan. The id must be the SHA-256 of the body, so retries are no-ops and altered uploads are refused. 201 new, 200 already stored |
+| `GET /v1/scans/{content_id}` | The scan exactly as uploaded |
+| `DELETE /v1/scans/{content_id}` | Remove a scan; only the device that uploaded it can |
+| `GET /v1/lookup?uuid=&serial=&board_serial=&exclude=` | Scans that claim the same machine, newest first, each graded now by the server's grader and saying which identifiers matched |
+
+Rules: tokens are stored only as hashes; verdicts are computed when read, never
+stored; a database from a newer server version is refused. The app uploads
+queued scans when you share one, when you press Sync now, and at start-up; a
+revoked token or unreachable server stops the pass and leaves scans queued.
+The token is kept in `sync.json` in the app's data folder (owner-only on
+macOS and Linux).
+
 ## Scan history and sync queue
 
 `crates/scanstore` keeps scans in SQLite with the C library compiled in, so
 there is still nothing to install. The rules:
 
 - **Nothing is shared unasked.** A scan starts `local`. Only an explicit
-  request moves it to `pending`; the sync service, once it exists, takes
+  request moves it to `pending`; the sync client takes
   pending scans oldest first and marks them `synced` or `failed` (failed ones
   are retried). `withdraw` takes a scan back out before it is sent.
 - **Scans are immutable and content-addressed.** Each is stored exactly as

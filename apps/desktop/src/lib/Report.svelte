@@ -27,9 +27,19 @@
     verdict,
     verdictTone,
   } from './present.js';
-  import { compareStored, compareWithSaved, labelStored, saveScanAs, saveTextReportAs } from './api.js';
+  import {
+    compareStored,
+    compareWithSaved,
+    labelStored,
+    saveScanAs,
+    saveTextReportAs,
+    shareStored,
+    teamLookup,
+    withdrawStored,
+  } from './api.js';
+  import { matchedOn, SYNC_STATES } from './present.js';
 
-  let { opened, origin, onback, onrescan = null } = $props();
+  let { opened, origin, onback, onrescan = null, team = null } = $props();
   const scan = $derived(opened.scan);
   const grade = $derived(opened.grade);
   const assessment = $derived(opened.assessment);
@@ -103,6 +113,42 @@
       },
     );
   }
+
+  // ------------------------------------------------------ team sharing
+  let sharing = $state(false);
+  async function share() {
+    sharing = true;
+    await act(
+      () => shareStored(record.id),
+      (r) => {
+        record = r.record;
+        return r.error ? `Queued to share. It will be sent when the server is reachable: ${r.error}` : 'Shared with your team.';
+      },
+    );
+    sharing = false;
+  }
+  const withdraw = () =>
+    act(
+      () => withdrawStored(record.id),
+      (r) => {
+        record = r;
+        return 'Taken out of the sharing queue. It stays on this computer.';
+      },
+    );
+
+  let seen = $state(null);
+  let seenError = $state('');
+  $effect(() => {
+    seen = null;
+    seenError = '';
+    if (!team?.configured) return;
+    const exclude = opened.record?.content_id;
+    let live = true;
+    teamLookup(opened.scan, exclude)
+      .then((l) => live && (seen = l))
+      .catch((e) => live && (seenError = String(e)));
+    return () => (live = false);
+  });
 
   const AREA_ICON = { function: 'drive', battery: 'battery', encumbrance: 'lock' };
 
@@ -203,7 +249,24 @@
 
   {#if record}
     <section class="kept">
-      <span class="faint small">Kept in scan history · {ORIGINS[record.origin] ?? record.origin} · on this computer only</span>
+      <span class="faint small">Kept in scan history · {ORIGINS[record.origin] ?? record.origin}</span>
+      <span class="share">
+        {#if record.sync === 'synced'}
+          <span class="pill ok"><Icon name="check" size={14} stroke={2.4} /> Shared with your team</span>
+        {:else if record.sync === 'pending'}
+          <span class="pill">Queued to share</span>
+          <button class="plain" onclick={withdraw}>Withdraw</button>
+        {:else if record.sync === 'failed'}
+          <span class="pill warn" title={record.last_error ?? ''}>{SYNC_STATES.failed}</span>
+          {#if team?.configured}<button class="plain" onclick={share} disabled={sharing}>Retry now</button>{/if}
+          <button class="plain" onclick={withdraw}>Withdraw</button>
+        {:else if team?.configured}
+          <span class="faint small">On this computer only</span>
+          <button class="primary small-btn" onclick={share} disabled={sharing}>{sharing ? 'Sharing…' : 'Share with team'}</button>
+        {:else}
+          <span class="faint small">On this computer only · set up team sharing on the home screen to share it</span>
+        {/if}
+      </span>
       <label class="note">
         <span class="faint small">Note</span>
         <input
@@ -234,6 +297,36 @@
   <UseFit uses={assessment.uses} bind:selected={selectedUse} />
 
   <SpecTiles specs={assessment.specs} {scan} />
+
+  {#if team?.configured}
+    <section class="card block seen" aria-labelledby="seen-title">
+      <div class="block-head">
+        <h2 id="seen-title" class="section-title">Seen by your team</h2>
+        <span class="faint small">On {team.server}</span>
+      </div>
+      {#if seenError}
+        <p class="faint small">Could not ask the team server: {seenError}</p>
+      {:else if !seen}
+        <p class="faint small">Asking the team server…</p>
+      {:else if seen.matches.length === 0}
+        <p class="muted small">Your team has no other scans that claim to be this laptop.</p>
+      {:else}
+        <p class="muted small">
+          {seen.matches.length}{seen.truncated ? '+' : ''} earlier {seen.matches.length === 1 ? 'scan claims' : 'scans claim'} to be this laptop.
+          Identifiers can be changed, so a match is a lead, not proof. A laptop resurfacing at another seller is worth asking about.
+        </p>
+        <ul class="plain">
+          {#each seen.matches as m (m.content_id)}
+            <li class="earlier-row">
+              <VerdictBadge value={m.headline} />
+              <span>{scannedAt(m.started_at)}</span>
+              <span class="faint small">by {m.device} · {osName(m.os)} · {matchedOn(m.matched_on)}</span>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+  {/if}
 
   {#if opened.earlier?.length}
     <section class="card block earlier">
@@ -617,6 +710,35 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px 16px;
+  }
+  .share {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--grey-bg);
+    color: var(--text-2);
+  }
+  .pill.ok {
+    background: var(--green-bg);
+    color: var(--green);
+  }
+  .pill.warn {
+    background: var(--amber-bg);
+    color: var(--amber);
+  }
+  .small-btn {
+    padding: 5px 14px;
+    font-size: 14px;
   }
   .note {
     display: flex;

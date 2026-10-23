@@ -168,3 +168,20 @@ describe('assessment presentation', () => {
     expect(powerOnText(5210)).toBe('5,210 hours (about 7 months powered on)');
   });
 });
+
+import { matchedOn, syncReport } from './present.js';
+
+describe('team sharing', () => {
+  it('reports a sync pass plainly, and says when it paused', () => {
+    expect(syncReport({ sent: 0, already: 0, failed: 0, stopped: null })).toBe('Nothing waiting to be shared.');
+    expect(syncReport({ sent: 2, already: 1, failed: 0, stopped: null })).toBe('Shared 3 scans.');
+    expect(syncReport({ sent: 1, already: 0, failed: 1, stopped: null })).toBe('Shared 1 scan; 1 failed and will be retried.');
+    expect(syncReport({ sent: 0, already: 0, failed: 1, stopped: 'token revoked' })).toBe('Sharing paused: token revoked');
+  });
+
+  it('names the identifiers a team match rests on', () => {
+    expect(matchedOn(['uuid', 'serial'])).toBe('Matched on UUID and serial');
+    expect(matchedOn(['board_serial'])).toBe('Matched on board serial');
+    expect(matchedOn([])).toBe('');
+  });
+});

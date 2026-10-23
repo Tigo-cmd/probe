@@ -1,0 +1,19 @@
+[package]
+name = "syncclient"
+description = "Client for the probe-sync team server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version = "1.85"
+
+[dependencies]
+hwprobe = { path = "../hwprobe" }
+scanstore = { path = "../scanstore" }
+serde.workspace = true
+serde_json.workspace = true
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "json"] }
+
+[dev-dependencies]
+probe-sync = { path = "../probe-sync" }
+tokio = { version = "1", features = ["rt-multi-thread", "net"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }

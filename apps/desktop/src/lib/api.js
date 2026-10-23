@@ -127,3 +127,75 @@ export async function compareWithSaved(scan) {
   if (!path) return null;
   return { path, comparison: await invoke('compare_with', { path, scan }) };
 }
+
+// ------------------------------------------------------------ team sharing
+// Uploads and lookups happen in Rust; the token never comes back here.
+
+const DEMO_TEAM = { configured: true, server: 'https://sync.example-repairs.co.uk', device: 'Front desk' };
+
+/** @returns {Promise<{configured: boolean, server: string|null, device: string|null}|null>} */
+export async function teamStatus() {
+  if (import.meta.env.DEV && demoMode) return DEMO_TEAM;
+  if (!inTauri) return null;
+  return invoke('team_status');
+}
+
+/** Check the server and token, then keep them. Rejects with the reason. */
+export async function teamConnect(server, token) {
+  if (import.meta.env.DEV && demoMode) return { ...DEMO_TEAM, server };
+  requireTauri();
+  return invoke('team_connect', { server, token });
+}
+
+export async function teamDisconnect() {
+  if (import.meta.env.DEV && demoMode) return { configured: false, server: null, device: null };
+  requireTauri();
+  return invoke('team_disconnect');
+}
+
+/** Queue a stored scan for sharing and try to send it now. */
+export async function shareStored(id) {
+  if (import.meta.env.DEV && demoMode) {
+    const d = await demo('opened');
+    return { record: { ...d.record, sync: 'synced', synced_at: d.record.stored_at }, report: { sent: 1, already: 0, failed: 0, stopped: null }, error: null };
+  }
+  requireTauri();
+  return invoke('share_stored', { id });
+}
+
+export async function withdrawStored(id) {
+  if (import.meta.env.DEV && demoMode) return { ...(await demo('opened')).record, sync: 'local' };
+  requireTauri();
+  return invoke('withdraw_stored', { id });
+}
+
+/** Send everything queued. */
+export async function syncNow() {
+  if (import.meta.env.DEV && demoMode) return { sent: 0, already: 0, failed: 0, stopped: null };
+  requireTauri();
+  return invoke('sync_now');
+}
+
+/** Scans on the team server that claim the same machine. */
+export async function teamLookup(scan, exclude) {
+  if (import.meta.env.DEV && demoMode) {
+    return {
+      truncated: false,
+      matches: [
+        {
+          content_id: 'd'.repeat(64),
+          started_at: scan.started_at - 86400 * 41,
+          received_at: scan.started_at - 86400 * 41,
+          device: 'Workshop',
+          os: 'windows',
+          machine: 'LENOVO 20HRCTO1WW',
+          serial: scan.identity?.serial?.value ?? null,
+          headline: 'green',
+          matched_on: ['uuid', 'serial'],
+        },
+      ],
+    };
+  }
+  requireTauri();
+  return invoke('team_lookup', { scan, exclude: exclude ?? null });
+}

@@ -1,0 +1,26 @@
+[package]
+name = "probe-sync"
+description = "Team sync server for probe scans"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+# rusqlite pulls in hashlink, which needs 1.85.
+rust-version = "1.85"
+
+[[bin]]
+name = "probe-sync"
+path = "src/main.rs"
+
+[dependencies]
+hwprobe = { path = "../hwprobe" }
+serde.workspace = true
+serde_json.workspace = true
+rusqlite = { version = "0.40", features = ["bundled"] }
+sha2 = "0.10"
+getrandom = "0.3"
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros", "signal"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

@@ -413,3 +413,24 @@ export function ataCount(attr) {
   const raw = Number(attr.raw);
   return attr.id === 188 ? raw % 2 ** 16 : raw % 2 ** 32;
 }
+
+/** "Shared 3 scans", or why a pass stopped. */
+export function syncReport(r) {
+  if (!r) return '';
+  if (r.stopped) return `Sharing paused: ${r.stopped}`;
+  const done = r.sent + r.already;
+  if (done === 0 && r.failed === 0) return 'Nothing waiting to be shared.';
+  const parts = [];
+  if (done) parts.push(`Shared ${done} ${done === 1 ? 'scan' : 'scans'}`);
+  if (r.failed) parts.push(`${r.failed} failed and will be retried`);
+  return parts.join('; ') + '.';
+}
+
+export const MATCH_NAMES = { uuid: 'UUID', serial: 'serial', board_serial: 'board serial' };
+
+/** "Matched on UUID and serial". */
+export function matchedOn(keys) {
+  const names = (keys ?? []).map((k) => MATCH_NAMES[k] ?? k);
+  if (!names.length) return '';
+  return `Matched on ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]}`;
+}

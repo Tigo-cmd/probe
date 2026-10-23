@@ -1,10 +1,11 @@
-//! scanstore: the local scan history and the queue the sync service will drain.
+//! scanstore: the local scan history and the queue that syncs to the team server.
 //!
 //! Every scan the app makes or opens is kept in a SQLite file on the machine
 //! running the app. Nothing leaves it on its own: a scan starts `local` and
 //! only becomes `pending` when the user asks for it to be shared. The sync
-//! service (not built yet) takes pending scans oldest first and reports back
-//! with [`Store::mark_synced`] or [`Store::mark_failed`].
+//! client (`crates/syncclient`) takes pending scans oldest first, uploads
+//! them to the team server (`crates/probe-sync`) and reports back with
+//! [`Store::mark_synced`] or [`Store::mark_failed`].
 //!
 //! Rules this crate keeps:
 //! - A scan is stored exactly as captured and never modified. It is keyed by

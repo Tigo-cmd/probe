@@ -10,6 +10,7 @@
 //! why the history is unavailable instead of failing.
 
 pub mod privilege;
+pub mod team;
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -295,16 +296,96 @@ fn compare_with(path: String, scan: Scan) -> Result<Comparison, String> {
     load(Path::new(&path)).map(|earlier| compare(&earlier, &scan))
 }
 
+// ------------------------------------------------------------ team sharing
+
+#[tauri::command]
+fn team_status(team: tauri::State<'_, team::Team>) -> team::TeamStatus {
+    team.status()
+}
+
+#[tauri::command]
+async fn team_connect(
+    app: tauri::AppHandle,
+    server: String,
+    token: String,
+) -> Result<team::TeamStatus, String> {
+    // Network calls block; keep them off the UI thread.
+    tauri::async_runtime::spawn_blocking(move || app.state::<team::Team>().connect(&server, &token))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn team_disconnect(team: tauri::State<'_, team::Team>) -> Result<team::TeamStatus, String> {
+    team.disconnect()
+}
+
+#[tauri::command]
+async fn share_stored(app: tauri::AppHandle, id: i64) -> Result<team::Shared, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        team::share(&app.state::<team::Team>(), &app.state::<History>(), id)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn withdraw_stored(history: tauri::State<'_, History>, id: i64) -> Result<Summary, String> {
+    history.with(|s| {
+        s.withdraw(id).map_err(|e| e.to_string())?;
+        s.summary(id).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+async fn sync_now(app: tauri::AppHandle) -> Result<syncclient::DrainReport, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.state::<team::Team>().sync(&app.state::<History>())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn team_lookup(
+    app: tauri::AppHandle,
+    scan: Scan,
+    exclude: Option<String>,
+) -> Result<syncclient::Lookup, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.state::<team::Team>().lookup(&scan, exclude.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let history = match app.path().app_data_dir() {
+            let data = app.path().app_data_dir();
+            let history = match &data {
                 Ok(dir) => History::open(dir.join("scans.sqlite3")),
                 Err(e) => History::unavailable(format!("no app data folder: {e}")),
             };
+            let team = team::Team::open(
+                data.map(|d| d.join("sync.json"))
+                    .unwrap_or_else(|_| std::env::temp_dir().join("probe-sync.json")),
+            );
+            let retry = team.status().configured;
             app.manage(history);
+            app.manage(team);
+            // Retry anything left queued from an earlier session, quietly:
+            // failures stay in the history and show on the scans they affect.
+            if retry {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    let _ = handle
+                        .state::<team::Team>()
+                        .sync(&handle.state::<History>());
+                });
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -319,7 +400,14 @@ pub fn run() {
             compare_stored,
             save_scan,
             save_text_report,
-            compare_with
+            compare_with,
+            team_status,
+            team_connect,
+            team_disconnect,
+            share_stored,
+            withdraw_stored,
+            sync_now,
+            team_lookup
         ])
         .run(tauri::generate_context!())
         .expect("error while running the probe desktop app");

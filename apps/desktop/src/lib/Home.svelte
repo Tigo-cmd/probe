@@ -1,6 +1,7 @@
 <script>
   import History from './History.svelte';
   import Icon from './Icon.svelte';
+  import TeamCard from './TeamCard.svelte';
   let {
     onscan,
     onscanlimited,
@@ -11,6 +12,9 @@
     ondeletestored,
     error = '',
     busy = false,
+    team = null,
+    onteamchange = () => {},
+    onsynced = () => {},
   } = $props();
   // A full scan is offered when the app already has the rights or can ask.
   const full = $derived(!privilege || privilege.elevated || privilege.can_elevate);
@@ -89,6 +93,10 @@
 
   {#if history}
     <History {history} onopen={onopenstored} ondelete={ondeletestored} />
+  {/if}
+
+  {#if team}
+    <TeamCard {team} counts={history?.counts} onchange={onteamchange} {onsynced} />
   {/if}
 </main>
 
