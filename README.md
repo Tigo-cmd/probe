@@ -146,7 +146,7 @@ end here: an unprivileged user, a real `pkexec`, granted and refused.
 
 ### Hands-on tests
 
-From any report, **Hands-on tests** opens five guided checks. Results are
+From any report, **Hands-on tests** opens twelve guided checks. Results are
 kept beside the scan in the local history (never inside it, so the scan's
 content id does not change) and appear in the report and the text report.
 A test that finds a problem holds the condition score to 79, limits every
@@ -158,7 +158,19 @@ use it matters to, and leads the next steps.
 | Touchpad and mouse | Seven steps that advance by themselves when they see the right event: sweep the whole pad, click, right-click, double-click, drag, scroll both ways, then hands off for three seconds to catch a pointer that drifts on its own. Measures the report rate and notices a touchscreen. |
 | Screen | Full-screen black, white, red, green, blue, grey and a gradient. The tester can click any bad spot to mark it. Refresh rate is measured from frame timing; resolution and scaling are read. |
 | Speakers | A chime from the left and right in a random order; the tester says where they heard it, so a silent or swapped side is caught. Then a low-to-high sweep for buzzing. |
-| Physical inspection | Case, hinges, battery swelling, ports and charging, signs of liquid, screws and seals, webcam and microphone, smell and heat. |
+| Webcam and microphone | Live preview; frames arriving and a picture that is not black are checked automatically, sharpness by the tester. A level meter passes by itself when it hears a voice. Nothing is recorded. |
+| Wi-Fi and Bluetooth | Finds both radios and whether they are switched on (Linux sysfs and rfkill, Windows IP Helper and SetupAPI, macOS system_profiler); the tester confirms nearby networks are visible. |
+| USB ports | The tester says how many ports there are, then plugs a device into each in turn; each port is marked working the moment a new USB device appears in the system's list. |
+| Physical inspection | Case, hinges, battery swelling, ports and charging, signs of liquid, screws and seals, smell and heat. |
+| Performance under load | Every core works flat out for 45 seconds in web workers. The pace is measured directly, so slowing down as it heats up is caught even where no temperature is reported; temperature, clock and the system's speed limit are shown where available. |
+| Drive read speed | Reads about 1 GB of existing system files with the cache bypassed (fadvise on Linux, F_NOCACHE on macOS, unbuffered reads on Windows) and compares the rate with what the drive type should manage. Read-only. |
+| Charger | Unplug, plug in: confirms the charger is detected and the battery takes charge, with the charging rate and, where reported (USB-C PD, Apple adapters), the charger's rating. |
+| Battery drain | Ten minutes unplugged at light load, sampled every ten seconds; estimates running time on a full charge and flags a charge level that drops in jumps. |
+
+Live readings come from `crates/hwprobe/src/live.rs`. On Linux the app turns
+on WebKitGTK media capture for its own window and grants only camera and
+microphone requests; on macOS `Info.plist` explains camera and microphone use
+and `Entitlements.plist` allows them under the hardened runtime.
 
 The scoring and wording for these live in `apps/desktop/src/lib/handson.js`
 (tested) and `crates/hwprobe/src/handson.rs`.

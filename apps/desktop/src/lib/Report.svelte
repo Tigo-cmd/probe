@@ -302,7 +302,7 @@
     <div class="block-head">
       <div>
         <h2 id="handson-title" class="section-title">Hands-on tests</h2>
-        <p class="faint small">Keyboard, touchpad, screen, speakers and a physical check. About five minutes.</p>
+        <p class="faint small">Keyboard, touchpad, screen, speakers, camera, radios, ports, charger, battery, speed and a physical check.</p>
       </div>
       {#if onhandson && record}
         <button class="primary" onclick={onhandson}>{opened.hands_on?.tests?.length ? 'Open tests' : 'Start tests'}</button>
@@ -831,7 +831,7 @@
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 10px;
   }
   .ho {
@@ -869,11 +869,6 @@
     font-size: 14px;
     display: grid;
     gap: 4px;
-  }
-  @media (max-width: 760px) {
-    .ho-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
   }
   .group {
     display: grid;

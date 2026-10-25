@@ -25,6 +25,51 @@ pub fn utf16_string(raw: &[u8]) -> Option<String> {
     (!s.is_empty()).then_some(s)
 }
 
+// ------------------------------------------------------------- live power
+
+/// `BATTERY_STATUS` power-state flags.
+pub const BATTERY_POWER_ON_LINE: u32 = 0x1;
+pub const BATTERY_DISCHARGING: u32 = 0x2;
+pub const BATTERY_CHARGING: u32 = 0x4;
+const BATTERY_UNKNOWN_RATE: u32 = 0x8000_0000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BatteryStatus {
+    pub power_state: u32,
+    /// Remaining capacity in mWh, when known.
+    pub capacity_mwh: Option<u32>,
+    pub voltage_mv: Option<u32>,
+    /// Signed rate in mW: positive charging, negative discharging.
+    pub rate_mw: Option<i32>,
+}
+
+/// `BATTERY_STATUS`: PowerState, Capacity, Voltage, Rate (four 32-bit fields).
+pub fn parse_battery_status(buf: &[u8]) -> Result<BatteryStatus, ParseError> {
+    require_len(buf, 16)?;
+    let known = |v: u32| Some(v).filter(|&v| v != BATTERY_UNKNOWN_CAPACITY && v != 0);
+    let rate = u32_at(buf, 12);
+    Ok(BatteryStatus {
+        power_state: u32_at(buf, 0),
+        capacity_mwh: known(u32_at(buf, 4)),
+        voltage_mv: known(u32_at(buf, 8)),
+        rate_mw: (rate != BATTERY_UNKNOWN_RATE).then_some(rate as i32),
+    })
+}
+
+/// `PROCESSOR_POWER_INFORMATION` per logical processor (six u32: Number,
+/// MaxMhz, CurrentMhz, MhzLimit, MaxIdleState, CurrentIdleState).
+/// Returns average current MHz, highest maximum, and the lowest limit.
+pub fn parse_processor_power(buf: &[u8]) -> Option<(u32, u32, u32)> {
+    let rows: Vec<&[u8]> = buf.chunks_exact(24).collect();
+    if rows.is_empty() {
+        return None;
+    }
+    let cur: u64 = rows.iter().map(|r| u32_at(r, 8) as u64).sum();
+    let max = rows.iter().map(|r| u32_at(r, 4)).max()?;
+    let limit = rows.iter().map(|r| u32_at(r, 12)).min()?;
+    (max > 0).then(|| ((cur / rows.len() as u64) as u32, max, limit))
+}
+
 // ---------------------------------------------------------------- graphics
 
 /// A device description as SetupAPI may return it: plain, or an indirect
@@ -239,6 +284,29 @@ pub fn count_processor_cores(buf: &[u8], pointer_width: usize) -> (u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_live_battery_and_processor_power() {
+        let mut b = Vec::new();
+        for v in [BATTERY_DISCHARGING, 41_000, 11_900, (-8_500i32) as u32] {
+            b.extend_from_slice(&v.to_le_bytes());
+        }
+        let s = parse_battery_status(&b).unwrap();
+        assert_eq!(s.capacity_mwh, Some(41_000));
+        assert_eq!(s.rate_mw, Some(-8_500));
+        b[12..16].copy_from_slice(&0x8000_0000u32.to_le_bytes());
+        assert_eq!(parse_battery_status(&b).unwrap().rate_mw, None);
+        assert!(parse_battery_status(&b[..8]).is_err());
+
+        let mut p = Vec::new();
+        for (cur, limit) in [(2000u32, 2800u32), (1000, 2800)] {
+            for v in [0, 2800, cur, limit, 0, 0] {
+                p.extend_from_slice(&v.to_le_bytes());
+            }
+        }
+        assert_eq!(parse_processor_power(&p), Some((1500, 2800, 2800)));
+        assert_eq!(parse_processor_power(&p[..10]), None);
+    }
 
     #[test]
     fn reads_graphics_descriptions_and_pci_ids() {

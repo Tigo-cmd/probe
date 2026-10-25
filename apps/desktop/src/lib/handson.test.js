@@ -133,3 +133,110 @@ describe('physical inspection', () => {
     expect(physicalResult({ case: 'fine' }).outcome).toBe('incomplete');
   });
 });
+
+import {
+  batteryResult,
+  brightness,
+  cameraResult,
+  chargerResult,
+  drainEstimate,
+  hoursText,
+  newDevices,
+  performanceResult,
+  portsResult,
+  storageResult,
+  TESTS,
+  wirelessResult,
+} from './handson.js';
+
+describe('the test list', () => {
+  it('has twelve tests in two groups, each kind once', () => {
+    expect(TESTS).toHaveLength(12);
+    expect(new Set(TESTS.map((t) => t.kind)).size).toBe(12);
+    expect(TESTS.every((t) => t.group === 'quick' || t.group === 'long')).toBe(true);
+  });
+});
+
+describe('webcam and microphone', () => {
+  const cam = { frames: true, width: 1280, height: 720, dark: false, clear: true };
+  it('passes only when both work and the picture was confirmed', () => {
+    expect(cameraResult(cam, { heard: true }).outcome).toBe('passed');
+    expect(cameraResult({ ...cam, clear: null }, { heard: true }).outcome).toBe('incomplete');
+    expect(cameraResult({ ...cam, dark: true }, { heard: true }).problems[0]).toMatch(/black/);
+    expect(cameraResult(cam, { heard: false }).problems).toEqual(['The microphone did not react to sound']);
+    expect(cameraResult({ error: 'NotAllowedError' }, { heard: true }).outcome).toBe('problems');
+  });
+  it('measures brightness from pixels', () => {
+    expect(brightness(new Uint8ClampedArray(64 * 4).fill(0))).toBe(0);
+    expect(Math.round(brightness(new Uint8ClampedArray(64 * 4).fill(255)))).toBe(255);
+  });
+});
+
+describe('wireless and ports', () => {
+  const wifi = { kind: 'wifi', name: 'wlan0', enabled: true, connected: true };
+  const bt = { kind: 'bluetooth', name: 'hci0', enabled: true, connected: null };
+  it('needs both radios on, and asks about nearby networks', () => {
+    expect(wirelessResult([wifi, bt], true).outcome).toBe('passed');
+    expect(wirelessResult([wifi], true).problems).toEqual(['No Bluetooth found']);
+    expect(wirelessResult([wifi, { ...bt, enabled: false }], true).summary).toBe('Bluetooth switched off');
+    expect(wirelessResult([wifi, bt], false).outcome).toBe('problems');
+  });
+  it('finds a newly plugged device and scores the ports', () => {
+    const before = [{ id: 'a', name: 'Webcam' }];
+    expect(newDevices(before, [...before, { id: 'b', name: 'Stick' }])).toEqual([{ id: 'b', name: 'Stick' }]);
+    expect(portsResult(['ok', 'ok']).outcome).toBe('passed');
+    expect(portsResult(['ok', 'failed']).problems).toEqual(['Port 2 did not detect a device']);
+    expect(portsResult(['ok', 'skipped']).outcome).toBe('incomplete');
+  });
+});
+
+describe('performance, storage and charger', () => {
+  it('catches a laptop that slows down as it heats up', () => {
+    const steady = Array(40).fill(100);
+    expect(performanceResult(steady).outcome).toBe('passed');
+    const fading = [...Array(20).fill(100), ...Array(20).fill(60)];
+    expect(performanceResult(fading).problems[0]).toMatch(/Slowed down by 40%/);
+    expect(performanceResult(steady, [70, 99]).problems).toEqual(['Processor reached 99 °C']);
+    expect(performanceResult(steady, [], [100, 60]).outcome).toBe('problems');
+    expect(performanceResult(Array(5).fill(100)).outcome).toBe('incomplete');
+  });
+  it('judges read speed against the kind of drive', () => {
+    expect(storageResult({ mb_per_s: 1800 }, 'nvme').outcome).toBe('passed');
+    expect(storageResult({ mb_per_s: 120 }, 'nvme').outcome).toBe('problems');
+    expect(storageResult({ mb_per_s: 90 }, 'hdd').summary).toBe('Reads at 90 MB/s, normal for a hard drive');
+    expect(storageResult({ mb_per_s: 10 }, 'unknown').outcome).toBe('passed');
+  });
+  it('accepts a full battery that does not charge, and flags a dead charger', () => {
+    const base = { unplugged: true, plugged: true, charging: true, rate_w: 40, adapter_w: 65, percent: 50 };
+    expect(chargerResult(base).summary).toBe('Charger works (65 W charger, charging at 40 W)');
+    expect(chargerResult({ ...base, plugged: false }).outcome).toBe('problems');
+    expect(chargerResult({ ...base, charging: false }).outcome).toBe('problems');
+    expect(chargerResult({ ...base, charging: false, percent: 100 }).outcome).toBe('passed');
+    expect(chargerResult({ ...base, rate_w: 3 }).outcome).toBe('problems');
+  });
+});
+
+describe('battery drain', () => {
+  const samples = (minutes, dropMwhPerMin, pctPerMin = 0.2) =>
+    Array.from({ length: minutes * 6 + 1 }, (_, i) => ({
+      t: i * 10,
+      energy_mwh: 50_000 - (dropMwhPerMin * i) / 6,
+      percent: 80 - (pctPerMin * i) / 6,
+      rate_mw: null,
+    }));
+  it('estimates running time from energy used', () => {
+    // 100 mWh a minute is 6 W; 60 Wh full lasts 10 hours.
+    const e = drainEstimate(samples(10, 100), 60_000);
+    expect(e.watts).toBeCloseTo(6);
+    expect(e.runtime_h).toBeCloseTo(10);
+    expect(batteryResult(samples(10, 100), 60_000).summary).toBe('About 10 h 0 min on a full charge at light use drawing about 6.0 W');
+  });
+  it('flags short running time, sudden drops, and runs that are too short', () => {
+    expect(batteryResult(samples(10, 1000), 20_000).outcome).toBe('problems');
+    const jumpy = samples(10, 100);
+    jumpy[20].percent -= 8;
+    expect(batteryResult(jumpy, 60_000).problems[0]).toMatch(/jumps/);
+    expect(batteryResult(samples(2, 100), 60_000).outcome).toBe('incomplete');
+    expect(hoursText(1.5)).toBe('1 h 30 min');
+  });
+});

@@ -6,6 +6,10 @@
 
 #[cfg(target_os = "linux")]
 pub mod linux;
+#[cfg(target_os = "linux")]
+pub mod live_linux;
+#[cfg(any(target_os = "macos", test))]
+pub mod live_macos;
 #[cfg(any(target_os = "macos", test))]
 pub mod macos;
 pub mod signals;

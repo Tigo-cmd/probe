@@ -474,7 +474,7 @@
     ]
   },
   "assessment": {
-    "version": "1.1.0",
+    "version": "1.2.0",
     "condition": {
       "score": 79,
       "band": "good",

@@ -5,11 +5,18 @@
 // outcome 'passed' | 'problems' | 'incomplete', matching hwprobe::handson.
 
 export const TESTS = [
-  { kind: 'keyboard', title: 'Keyboard', icon: 'keyboard', minutes: 2, blurb: 'Press every key once. Each one lights up when the laptop registers it.' },
-  { kind: 'pointer', title: 'Touchpad and mouse', icon: 'pointer', minutes: 1, blurb: 'Sweep, click, drag and scroll. Each step moves on by itself when it works.' },
-  { kind: 'screen', title: 'Screen', icon: 'display', minutes: 1, blurb: 'Full-screen colours to spot dead pixels, bright patches and lines.' },
-  { kind: 'speakers', title: 'Speakers', icon: 'speaker', minutes: 1, blurb: 'Sounds play from one side at a time; you say where you heard them.' },
-  { kind: 'physical', title: 'Physical inspection', icon: 'checklist', minutes: 2, blurb: 'A guided look at the case, hinges, ports and battery.' },
+  { kind: 'keyboard', group: 'quick', title: 'Keyboard', icon: 'keyboard', minutes: 2, blurb: 'Press every key once. Each one lights up when the laptop registers it.' },
+  { kind: 'pointer', group: 'quick', title: 'Touchpad and mouse', icon: 'pointer', minutes: 1, blurb: 'Sweep, click, drag and scroll. Each step moves on by itself when it works.' },
+  { kind: 'screen', group: 'quick', title: 'Screen', icon: 'display', minutes: 1, blurb: 'Full-screen colours to spot dead pixels, bright patches and lines.' },
+  { kind: 'speakers', group: 'quick', title: 'Speakers', icon: 'speaker', minutes: 1, blurb: 'Sounds play from one side at a time; you say where you heard them.' },
+  { kind: 'camera', group: 'quick', title: 'Webcam and microphone', icon: 'camera', minutes: 1, blurb: 'A live picture and a sound meter. Nothing is recorded.' },
+  { kind: 'wireless', group: 'quick', title: 'Wi-Fi and Bluetooth', icon: 'wifi', minutes: 1, blurb: 'Finds the radios and checks they are switched on and working.' },
+  { kind: 'ports', group: 'quick', title: 'USB ports', icon: 'usb', minutes: 2, blurb: 'Plug a USB stick into each port in turn; each one is detected by itself.' },
+  { kind: 'physical', group: 'quick', title: 'Physical inspection', icon: 'checklist', minutes: 2, blurb: 'A guided look at the case, hinges, ports and battery.' },
+  { kind: 'performance', group: 'long', title: 'Performance under load', icon: 'gauge', minutes: 1, blurb: 'Works every processor core flat out to see whether it slows down as it heats up.' },
+  { kind: 'storage', group: 'long', title: 'Drive read speed', icon: 'drive', minutes: 1, blurb: 'Times reading existing files. Read-only: nothing is written.' },
+  { kind: 'charger', group: 'long', title: 'Charger', icon: 'plug', minutes: 1, blurb: 'Unplug and plug in again; checks it charges and how fast.' },
+  { kind: 'battery', group: 'long', title: 'Battery drain', icon: 'battery', minutes: 10, blurb: 'Measures how fast the battery empties, unplugged, and estimates real running time.' },
 ];
 
 export const OUTCOMES = {
@@ -274,7 +281,6 @@ export const PHYSICAL_ITEMS = [
   { id: 'ports', title: 'Ports and charging', how: 'Plug in the charger and a USB device. They should seat firmly and charging should start immediately.' },
   { id: 'liquid', title: 'Signs of liquid', how: 'Sticky keys, residue around the keyboard, or green or white corrosion near the ports.' },
   { id: 'screws', title: 'Screws and seals', how: 'Missing or stripped screws, or broken warranty seals, mean it has been opened.' },
-  { id: 'webcam', title: 'Webcam and microphone', how: 'Open the camera app and record a short clip; check picture and sound.' },
   { id: 'smell', title: 'Smell and heat', how: 'A burnt smell, or the case getting hot while idle, needs explaining.' },
 ];
 
@@ -288,4 +294,192 @@ export function physicalResult(answers, notes = {}) {
   if (problems.length) return result('physical', 'problems', `${problems.length} ${problems.length === 1 ? 'problem' : 'problems'} found by inspection`, problems, detail);
   if (checked < PHYSICAL_ITEMS.length) return result('physical', 'incomplete', `${checked} of ${PHYSICAL_ITEMS.length} items checked`, [], detail);
   return result('physical', 'passed', `All ${PHYSICAL_ITEMS.length} items looked fine`, [], detail);
+}
+
+// ----------------------------------------------------- webcam and microphone
+
+/** Average brightness 0–255 of RGBA pixel data, sampling every 16th pixel. */
+export function brightness(data) {
+  let sum = 0;
+  let n = 0;
+  for (let i = 0; i < data.length; i += 64) {
+    sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+    n++;
+  }
+  return n ? sum / n : 0;
+}
+
+/**
+ * `camera`: { frames, width, height, dark, clear } where `clear` is the
+ * tester's answer (true, false or null). `mic`: { heard, error }.
+ */
+export function cameraResult(camera, mic) {
+  const problems = [];
+  if (camera.error) problems.push(`Camera could not start: ${camera.error}`);
+  else if (!camera.frames) problems.push('The camera gave no picture');
+  else if (camera.dark) problems.push('The camera picture stays black (covered, or a failed sensor)');
+  else if (camera.clear === false) problems.push('The camera picture is blurry, discoloured or has lines');
+  if (mic.error) problems.push(`Microphone could not start: ${mic.error}`);
+  else if (mic.heard === false) problems.push('The microphone did not react to sound');
+  const detail = { camera, mic };
+  if (problems.length) return result('camera', 'problems', problems[0], problems, detail);
+  if (camera.clear !== true || mic.heard !== true) return result('camera', 'incomplete', 'Not every check was answered', [], detail);
+  const res = camera.width ? ` (${camera.width}×${camera.height})` : '';
+  return result('camera', 'passed', `Camera picture${res} and microphone both work`, [], detail);
+}
+
+// -------------------------------------------------------------- wireless
+
+/** `radios` from Rust; `sees` is whether nearby networks are visible (true/false/null). */
+export function wirelessResult(radios, sees) {
+  const wifi = radios.filter((r) => r.kind === 'wifi');
+  const bt = radios.filter((r) => r.kind === 'bluetooth');
+  const problems = [];
+  if (!wifi.length) problems.push('No Wi-Fi adapter found');
+  if (!bt.length) problems.push('No Bluetooth found');
+  if (sees === false) problems.push('Wi-Fi does not see nearby networks');
+  const off = [...wifi, ...bt].filter((r) => r.enabled === false).map((r) => (r.kind === 'wifi' ? 'Wi-Fi' : 'Bluetooth'));
+  const detail = { radios, sees_networks: sees };
+  if (problems.length) return result('wireless', 'problems', problems[0], problems, detail);
+  if (off.length || sees === null) {
+    return result('wireless', 'incomplete', off.length ? `${off.join(' and ')} switched off` : 'Nearby networks not checked', [], detail);
+  }
+  return result('wireless', 'passed', `Wi-Fi${wifi[0].connected ? ' (connected)' : ''} and Bluetooth found and working`, [], detail);
+}
+
+// ----------------------------------------------------------------- ports
+
+/** New devices in `now` that were not in `before`, by id. */
+export function newDevices(before, now) {
+  const seen = new Set(before.map((d) => d.id));
+  return now.filter((d) => !seen.has(d.id));
+}
+
+/** `ports`: one of 'ok' | 'failed' | 'skipped' per port, in order; `names` the devices seen. */
+export function portsResult(ports, names = []) {
+  const failed = ports.map((p, i) => [p, i]).filter(([p]) => p === 'failed').map(([, i]) => `Port ${i + 1} did not detect a device`);
+  const ok = ports.filter((p) => p === 'ok').length;
+  const detail = { ports, devices: names };
+  if (failed.length) return result('ports', 'problems', `${failed.length} of ${ports.length} ports did not work`, failed, detail);
+  if (ok < ports.length) return result('ports', 'incomplete', `${ok} of ${ports.length} ports checked`, [], detail);
+  return result('ports', 'passed', `All ${ports.length} USB ports detected a device`, [], detail);
+}
+
+// ----------------------------------------------------------- performance
+
+const median = (xs) => {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+};
+
+/**
+ * `perSecond`: total work done in each second of the run. A well-cooled
+ * laptop holds roughly its early speed; one with a clogged fan or dried
+ * thermal paste falls away as it heats up. `temps` (°C) and `limits` (%)
+ * come from the system when it reports them.
+ */
+export function performanceResult(perSecond, temps = [], limits = [], cores = null) {
+  const early = median(perSecond.slice(2, 9));
+  const late = median(perSecond.slice(-8));
+  const drop = early && late !== null ? Math.max(0, 1 - late / early) : null;
+  const maxTemp = temps.length ? Math.max(...temps) : null;
+  const minLimit = limits.length ? Math.min(...limits) : null;
+  const problems = [];
+  if (drop !== null && drop > 0.25) problems.push(`Slowed down by ${Math.round(drop * 100)}% under sustained load: likely overheating (fan, dust or thermal paste)`);
+  if (maxTemp !== null && maxTemp >= 98) problems.push(`Processor reached ${Math.round(maxTemp)} °C`);
+  if (minLimit !== null && minLimit < 80) problems.push(`The system limited the processor to ${minLimit}% of its speed`);
+  const detail = { per_second: perSecond, drop, max_temp_c: maxTemp, min_limit_pct: minLimit, cores };
+  if (perSecond.length < 15) return result('performance', 'incomplete', 'The load test was stopped early', [], detail);
+  if (problems.length) return result('performance', 'problems', problems[0], problems, detail);
+  const temp = maxTemp !== null ? `, peaking at ${Math.round(maxTemp)} °C` : '';
+  return result('performance', 'passed', `Held its speed under full load (${Math.round((drop ?? 0) * 100)}% slower at the end${temp})`, [], detail);
+}
+
+// --------------------------------------------------------------- storage
+
+/** What a drive of each kind should at least manage reading files, in MB/s. */
+export const READ_FLOORS = { nvme: 300, sata_ssd: 150, hdd: 40 };
+
+export function storageResult(speed, kind) {
+  const mbs = Math.round(speed.mb_per_s);
+  const floor = READ_FLOORS[kind] ?? null;
+  const detail = { ...speed, kind };
+  const label = { nvme: 'an NVMe SSD', sata_ssd: 'a SATA SSD', hdd: 'a hard drive' }[kind];
+  if (floor !== null && mbs < floor) {
+    return result('storage', 'problems', `Reads at ${mbs} MB/s, far slower than ${label} should`, [`Reads at ${mbs} MB/s; ${label} should manage at least ${floor} MB/s here`], detail);
+  }
+  return result('storage', 'passed', `Reads at ${mbs} MB/s${label ? `, normal for ${label}` : ''}`, [], detail);
+}
+
+// --------------------------------------------------------------- charger
+
+/**
+ * `seen`: { unplugged, plugged, charging, rate_w, adapter_w, percent }.
+ * A full battery may rightly not charge.
+ */
+export function chargerResult(seen) {
+  const detail = { ...seen };
+  if (!seen.plugged) return result('charger', 'problems', 'The charger was not detected when plugged in', ['The charger was not detected when plugged in'], detail);
+  const full = seen.percent !== null && seen.percent >= 95;
+  if (!seen.charging && !full) return result('charger', 'problems', 'Plugged in but not charging', ['Plugged in but the battery did not start charging'], detail);
+  if (seen.charging && seen.rate_w !== null && seen.rate_w < 5 && !full) {
+    return result('charger', 'problems', `Charging very slowly (${seen.rate_w} W)`, [`Charging at only ${seen.rate_w} W: the charger or port may be weak`], detail);
+  }
+  const parts = [];
+  if (seen.adapter_w) parts.push(`${seen.adapter_w} W charger`);
+  if (seen.rate_w) parts.push(`charging at ${seen.rate_w} W`);
+  return result('charger', 'passed', full && !seen.charging ? 'Charger detected; battery already full' : `Charger works${parts.length ? ` (${parts.join(', ')})` : ''}`, [], detail);
+}
+
+// --------------------------------------------------------- battery drain
+
+/**
+ * `samples`: [{ t (seconds), energy_mwh, percent, rate_mw }] taken on battery.
+ * Estimates running time at the load during the test.
+ */
+export function drainEstimate(samples, fullMwh) {
+  if (samples.length < 2) return null;
+  const a = samples[0];
+  const b = samples[samples.length - 1];
+  const hours = (b.t - a.t) / 3600;
+  if (hours <= 0) return null;
+  let watts = null;
+  if (a.energy_mwh != null && b.energy_mwh != null && a.energy_mwh > b.energy_mwh) watts = (a.energy_mwh - b.energy_mwh) / 1000 / hours;
+  if (watts === null) {
+    const rates = samples.map((s) => s.rate_mw).filter((r) => r != null && r < 0);
+    if (rates.length) watts = -rates.reduce((x, y) => x + y, 0) / rates.length / 1000;
+  }
+  const pctPerHour = a.percent != null && b.percent != null ? (a.percent - b.percent) / hours : null;
+  let runtime = null;
+  if (watts && fullMwh) runtime = fullMwh / 1000 / watts;
+  else if (pctPerHour && pctPerHour > 0) runtime = 100 / pctPerHour;
+  // A drop of 5 points or more between two samples ten seconds apart is a jump.
+  let jumps = 0;
+  for (let i = 1; i < samples.length; i++) {
+    const p0 = samples[i - 1].percent;
+    const p1 = samples[i].percent;
+    if (p0 != null && p1 != null && p0 - p1 >= 5) jumps++;
+  }
+  return { watts, pct_per_hour: pctPerHour, runtime_h: runtime, jumps, minutes: (b.t - a.t) / 60 };
+}
+
+export function hoursText(h) {
+  const total = Math.round(h * 60);
+  const hh = Math.floor(total / 60);
+  const mm = total % 60;
+  return hh ? `${hh} h ${mm} min` : `${mm} min`;
+}
+
+export function batteryResult(samples, fullMwh) {
+  const e = drainEstimate(samples, fullMwh);
+  const detail = { samples, estimate: e };
+  if (!e || e.minutes < 3) return result('battery', 'incomplete', 'Ran for less than three minutes', [], detail);
+  const problems = [];
+  if (e.jumps) problems.push('The charge level dropped in sudden jumps: the battery may be failing');
+  if (e.runtime_h !== null && e.runtime_h < 1.5) problems.push(`Would last only about ${hoursText(e.runtime_h)} at this light use`);
+  if (problems.length) return result('battery', 'problems', problems[0], problems, detail);
+  if (e.runtime_h === null) return result('battery', 'incomplete', 'The battery did not report enough to estimate running time', [], detail);
+  const w = e.watts ? ` drawing about ${e.watts.toFixed(1)} W` : '';
+  return result('battery', 'passed', `About ${hoursText(e.runtime_h)} on a full charge at light use${w}`, [], detail);
 }

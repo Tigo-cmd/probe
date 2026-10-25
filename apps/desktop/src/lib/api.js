@@ -230,3 +230,64 @@ export async function setFullscreen(on) {
     // Fullscreen refused: the test still runs inside the window.
   }
 }
+
+// --------------------------------------------------------- live readings
+// Sampled repeatedly by the longer tests. The design preview simulates a
+// laptop so every screen can be seen without hardware.
+
+const demoStart = Date.now();
+const demoSeconds = () => (Date.now() - demoStart) / 1000;
+
+export async function livePower() {
+  if (import.meta.env.DEV && demoMode) {
+    const t = demoSeconds();
+    // Unplugged for the first 6 s of each 20 s, then charging; drains ~7 W.
+    const onAc = t % 20 > 6;
+    const energy = Math.round(41_000 - t * 2);
+    return { on_ac: onAc, charging: onAc, percent: (energy / 51_000) * 100, energy_mwh: energy, full_mwh: 51_000, rate_mw: onAc ? 38_000 : -7_200, adapter_watts: onAc ? 65 : null, source: 'demo' };
+  }
+  requireTauri();
+  return invoke('live_power');
+}
+
+export async function liveCpu() {
+  if (import.meta.env.DEV && demoMode) {
+    const t = demoSeconds();
+    return { mhz: 2400 + Math.round(Math.sin(t) * 300), max_mhz: 3900, temp_c: 62 + Math.min(20, t % 60), limit_pct: null, source: 'demo' };
+  }
+  requireTauri();
+  return invoke('live_cpu');
+}
+
+export async function liveRadios() {
+  if (import.meta.env.DEV && demoMode) {
+    await new Promise((r) => setTimeout(r, 600));
+    return [
+      { kind: 'wifi', name: 'Intel Wireless 8265', enabled: true, connected: true },
+      { kind: 'bluetooth', name: 'Intel Bluetooth', enabled: true, connected: null },
+    ];
+  }
+  requireTauri();
+  return invoke('live_radios');
+}
+
+let demoUsbCalls = 0;
+export async function liveUsb() {
+  if (import.meta.env.DEV && demoMode) {
+    // A stick appears on the 3rd poll and leaves on the 6th, repeatedly.
+    demoUsbCalls++;
+    const base = [{ id: '1-5/04f2:b5c0', name: 'Integrated Camera' }];
+    return demoUsbCalls % 6 >= 3 ? [...base, { id: `1-2/0781:5583/${Math.floor(demoUsbCalls / 6)}`, name: 'SanDisk Ultra Fit' }] : base;
+  }
+  requireTauri();
+  return invoke('live_usb');
+}
+
+export async function readSpeed() {
+  if (import.meta.env.DEV && demoMode) {
+    await new Promise((r) => setTimeout(r, 2500));
+    return { mb_per_s: 1640.4, bytes: 1 << 30, files: 9, seconds: 0.65, method: 'demo' };
+  }
+  requireTauri();
+  return invoke('read_speed');
+}

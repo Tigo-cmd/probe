@@ -14,6 +14,7 @@ pub mod backend;
 pub mod fingerprint;
 pub mod grade;
 pub mod handson;
+pub mod live;
 pub mod model;
 pub mod parse;
 pub mod report;

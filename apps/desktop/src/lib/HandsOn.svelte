@@ -9,6 +9,13 @@
   import ScreenTest from './tests/ScreenTest.svelte';
   import SpeakerTest from './tests/SpeakerTest.svelte';
   import PhysicalTest from './tests/PhysicalTest.svelte';
+  import CameraTest from './tests/CameraTest.svelte';
+  import WirelessTest from './tests/WirelessTest.svelte';
+  import PortsTest from './tests/PortsTest.svelte';
+  import PerformanceTest from './tests/PerformanceTest.svelte';
+  import StorageTest from './tests/StorageTest.svelte';
+  import ChargerTest from './tests/ChargerTest.svelte';
+  import BatteryTest from './tests/BatteryTest.svelte';
   import { saveHandsOnResult } from './api.js';
   import { OUTCOMES, TESTS } from './handson.js';
   import { machineName } from './present.js';
@@ -32,12 +39,29 @@
     }
   }
 
-  const COMPONENTS = { keyboard: KeyboardTest, pointer: PointerTest, screen: ScreenTest, speakers: SpeakerTest, physical: PhysicalTest };
+  const COMPONENTS = {
+    keyboard: KeyboardTest,
+    pointer: PointerTest,
+    screen: ScreenTest,
+    speakers: SpeakerTest,
+    camera: CameraTest,
+    wireless: WirelessTest,
+    ports: PortsTest,
+    physical: PhysicalTest,
+    performance: PerformanceTest,
+    storage: StorageTest,
+    charger: ChargerTest,
+    battery: BatteryTest,
+  };
+  const GROUPS = [
+    { id: 'quick', title: 'Quick checks', blurb: 'About ten minutes for all eight.' },
+    { id: 'long', title: 'Longer checks', blurb: 'Run these while you talk to the seller. The battery test needs ten minutes unplugged.' },
+  ];
   const Running = $derived(running ? COMPONENTS[running] : null);
 </script>
 
 {#if Running}
-  <Running os={opened.scan.os} oncomplete={complete} oncancel={() => (running = null)} />
+  <Running os={opened.scan.os} kind={opened.assessment.specs.storage.kind} oncomplete={complete} oncancel={() => (running = null)} />
 {:else}
   <div class="toolbar">
     <div class="toolbar-inner">
@@ -54,39 +78,42 @@
       <div>
         <p class="eyebrow">{machine.vendor} {machine.name}</p>
         <h1>Hands-on tests</h1>
-        <p class="muted">About five minutes. Results are kept with this scan and shown in its report.</p>
+        <p class="muted">Results are kept with this scan and shown in its report. Run them in any order.</p>
       </div>
     </header>
 
     {#if failure}<p class="error" role="alert">{failure}</p>{/if}
 
-    <ul class="list">
-      {#each TESTS as t (t.kind)}
-        {@const r = results[t.kind]}
-        {@const o = r ? OUTCOMES[r.outcome] : null}
-        <li class="card">
-          <span class="badge"><Icon name={t.icon} size={22} /></span>
-          <div class="text">
-            <h2>{t.title} <span class="faint small">· about {t.minutes} min</span></h2>
-            {#if r}
-              <p class="tone-{o.tone} small result">{o.label}: {r.summary}</p>
-              {#each r.problems.filter((p) => p !== r.summary).slice(0, 3) as p (p)}<p class="faint small">· {p}</p>{/each}
-            {:else}
-              <p class="faint small">{t.blurb}</p>
-            {/if}
-          </div>
-          <button class={r ? '' : 'primary'} onclick={() => (running = t.kind)} disabled={!opened.record}>{r ? 'Run again' : 'Start'}</button>
-        </li>
-      {/each}
-    </ul>
+    {#each GROUPS as g (g.id)}
+      <section class="group">
+        <div class="group-head">
+          <h2 class="section-title">{g.title}</h2>
+          <p class="faint small">{g.blurb}</p>
+        </div>
+        <ul class="list">
+          {#each TESTS.filter((t) => t.group === g.id) as t (t.kind)}
+            {@const r = results[t.kind]}
+            {@const o = r ? OUTCOMES[r.outcome] : null}
+            <li class="card">
+              <span class="badge {g.id}"><Icon name={t.icon} size={22} /></span>
+              <div class="text">
+                <h3>{t.title} <span class="faint small">· about {t.minutes} min</span></h3>
+                {#if r}
+                  <p class="tone-{o.tone} small result">{o.label}: {r.summary}</p>
+                  {#each r.problems.filter((p) => p !== r.summary).slice(0, 3) as p (p)}<p class="faint small">· {p}</p>{/each}
+                {:else}
+                  <p class="faint small">{t.blurb}</p>
+                {/if}
+              </div>
+              <button class={r ? '' : 'primary'} onclick={() => (running = t.kind)} disabled={!opened.record}>{r ? 'Run again' : 'Start'}</button>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/each}
     {#if !opened.record}
       <p class="faint small">This scan is not in the history, so test results cannot be kept.</p>
     {/if}
-
-    <section class="card more">
-      <h2>More tests coming</h2>
-      <p class="faint small">Webcam and microphone, battery drain over ten minutes, a drive read-speed check, a short processor load test for overheating and throttling, Wi-Fi and Bluetooth, and charger wattage.</p>
-    </section>
   </main>
 {/if}
 
@@ -167,9 +194,21 @@
     display: grid;
     gap: 3px;
   }
-  h2 {
+  h3 {
     font-size: 17px;
     font-weight: 650;
+  }
+  .group {
+    display: grid;
+    gap: 12px;
+  }
+  .group-head {
+    display: grid;
+    gap: 2px;
+    margin-top: 8px;
+  }
+  .badge.long {
+    background: var(--teal-fill);
   }
   .result {
     font-weight: 600;
@@ -182,11 +221,6 @@
   }
   .tone-amber {
     color: var(--amber);
-  }
-  .more {
-    padding: 18px 20px;
-    display: grid;
-    gap: 4px;
   }
   .error {
     color: var(--red);

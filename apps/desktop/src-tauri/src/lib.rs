@@ -338,6 +338,74 @@ fn compare_with(path: String, scan: Scan) -> Result<Comparison, String> {
     load(Path::new(&path)).map(|earlier| compare(&earlier, &scan))
 }
 
+// ------------------------------------------------------- live readings
+
+#[tauri::command]
+fn live_power() -> hwprobe::live::PowerNow {
+    hwprobe::live::power_now()
+}
+
+#[tauri::command]
+fn live_cpu() -> hwprobe::live::CpuNow {
+    hwprobe::live::cpu_now()
+}
+
+#[tauri::command]
+async fn live_radios() -> Result<Vec<hwprobe::live::Radio>, String> {
+    // system_profiler can take a few seconds on a Mac.
+    tauri::async_runtime::spawn_blocking(hwprobe::live::radios)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn live_usb() -> Result<Vec<hwprobe::live::UsbDevice>, String> {
+    tauri::async_runtime::spawn_blocking(hwprobe::live::usb_devices)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Read-only: times reading existing system files with the cache bypassed.
+#[tauri::command]
+async fn read_speed() -> Result<hwprobe::live::ReadSpeed, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        hwprobe::live::read_speed(1 << 30, std::time::Duration::from_secs(12))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Let the app's own window use the camera and microphone on Linux, where
+/// WebKitGTK refuses media capture by default. Only media requests are
+/// granted; any other permission request keeps the default answer.
+#[cfg(target_os = "linux")]
+fn allow_media_capture(app: &tauri::App) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let _ = window.with_webview(|wv| {
+        use webkit2gtk::glib::prelude::Cast;
+        use webkit2gtk::{
+            PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, WebViewExt,
+        };
+        let view = wv.inner();
+        if let Some(settings) = WebViewExt::settings(&view) {
+            settings.set_enable_media_stream(true);
+        }
+        view.connect_permission_request(|_, request| {
+            if request
+                .downcast_ref::<UserMediaPermissionRequest>()
+                .is_some()
+            {
+                request.allow();
+                true
+            } else {
+                false
+            }
+        });
+    });
+}
+
 // ------------------------------------------------------------ team sharing
 
 #[tauri::command]
@@ -418,6 +486,8 @@ pub fn run() {
             let retry = team.status().configured;
             app.manage(history);
             app.manage(team);
+            #[cfg(target_os = "linux")]
+            allow_media_capture(app);
             // Retry anything left queued from an earlier session, quietly:
             // failures stay in the history and show on the scans they affect.
             if retry {
@@ -444,6 +514,11 @@ pub fn run() {
             save_text_report,
             compare_with,
             save_hands_on_result,
+            live_power,
+            live_cpu,
+            live_radios,
+            live_usb,
+            read_speed,
             team_status,
             team_connect,
             team_disconnect,

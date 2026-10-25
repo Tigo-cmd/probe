@@ -19,6 +19,13 @@ pub enum TestKind {
     Pointer,
     Screen,
     Speakers,
+    Camera,
+    Battery,
+    Charger,
+    Performance,
+    Storage,
+    Wireless,
+    Ports,
     Physical,
 }
 
@@ -81,6 +88,13 @@ pub fn kind_label(kind: TestKind) -> &'static str {
         TestKind::Pointer => "Touchpad and mouse",
         TestKind::Screen => "Screen",
         TestKind::Speakers => "Speakers",
+        TestKind::Camera => "Webcam and microphone",
+        TestKind::Battery => "Battery drain",
+        TestKind::Charger => "Charger",
+        TestKind::Performance => "Performance under load",
+        TestKind::Storage => "Drive read speed",
+        TestKind::Wireless => "Wi-Fi and Bluetooth",
+        TestKind::Ports => "USB ports",
         TestKind::Physical => "Physical inspection",
     }
 }

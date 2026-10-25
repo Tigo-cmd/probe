@@ -271,6 +271,7 @@ fn memory() -> Memory {
 const FILE_DEVICE_BATTERY: u32 = 0x29;
 const IOCTL_BATTERY_QUERY_TAG: u32 = ctl_code(FILE_DEVICE_BATTERY, 0x10, FILE_READ_ACCESS);
 const IOCTL_BATTERY_QUERY_INFORMATION: u32 = ctl_code(FILE_DEVICE_BATTERY, 0x11, FILE_READ_ACCESS);
+const IOCTL_BATTERY_QUERY_STATUS: u32 = ctl_code(FILE_DEVICE_BATTERY, 0x13, FILE_READ_ACCESS);
 
 /// `BATTERY_QUERY_INFORMATION_LEVEL`.
 #[derive(Clone, Copy)]
@@ -1242,6 +1243,254 @@ impl Key {
             out.push(String::from_utf16_lossy(&buf[..len as usize]));
         }
         out
+    }
+}
+
+// -------------------------------------------------------- live readings
+
+/// Live readings for the hands-on tests. A child module so it can use the
+/// handle, IOCTL and SetupAPI helpers above.
+pub(crate) mod live {
+    use super::*;
+    use crate::live::*;
+    use std::fs::File;
+    use std::os::windows::io::FromRawHandle;
+    use std::path::Path;
+    use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
+        DIGCF_ALLCLASSES, GUID_DEVCLASS_BLUETOOTH,
+    };
+    use windows_sys::Win32::NetworkManagement::IpHelper::IF_TYPE_IEEE80211;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_FLAG_NO_BUFFERING, FILE_FLAG_SEQUENTIAL_SCAN,
+    };
+    use windows_sys::Win32::System::Power::{
+        CallNtPowerInformation, GetSystemPowerStatus, ProcessorInformation, SYSTEM_POWER_STATUS,
+    };
+
+    pub const READ_ROOTS: [&str; 3] = [
+        "C:\\Windows\\System32",
+        "C:\\Windows\\SysWOW64",
+        "C:\\Program Files",
+    ];
+    pub const UNCACHED_METHOD: &str = "unbuffered reads (FILE_FLAG_NO_BUFFERING)";
+
+    pub fn power_now() -> PowerNow {
+        let mut p = PowerNow {
+            source: "GetSystemPowerStatus, IOCTL_BATTERY_QUERY_STATUS".into(),
+            ..PowerNow::default()
+        };
+        // SAFETY: SYSTEM_POWER_STATUS is plain data filled by the call.
+        let mut s: SYSTEM_POWER_STATUS = unsafe { zeroed() };
+        if unsafe { GetSystemPowerStatus(&mut s) } != 0 {
+            p.on_ac = match s.ACLineStatus {
+                0 => Some(false),
+                1 => Some(true),
+                _ => None,
+            };
+            if s.BatteryFlag != 255 && s.BatteryFlag & 128 == 0 {
+                p.charging = Some(s.BatteryFlag & 8 != 0);
+            }
+            if s.BatteryLifePercent <= 100 {
+                p.percent = Some(s.BatteryLifePercent as f64);
+            }
+        }
+        // The first system battery's live status gives energy and rate.
+        if let Ok(paths) = interface_paths(&GUID_DEVCLASS_BATTERY) {
+            for path in paths {
+                if let Some((status, full)) = battery_status(&path) {
+                    p.energy_mwh = status.capacity_mwh.map(u64::from);
+                    p.full_mwh = full.map(u64::from);
+                    p.rate_mw = status.rate_mw.map(i64::from);
+                    if status.power_state & winioctl::BATTERY_CHARGING != 0 {
+                        p.charging = Some(true);
+                    }
+                    break;
+                }
+            }
+        }
+        p
+    }
+
+    fn battery_status(path: &str) -> Option<(winioctl::BatteryStatus, Option<u32>)> {
+        let h = open(path, GENERIC_READ).ok()?;
+        let tag = ioctl(&h, IOCTL_BATTERY_QUERY_TAG, &0u32.to_le_bytes(), 4).ok()?;
+        let tag = u32::from_le_bytes(tag.get(..4)?.try_into().ok()?);
+        if tag == 0 {
+            return None;
+        }
+        let mut wait = Vec::with_capacity(20);
+        for v in [tag, 0, 0, 0, 0] {
+            wait.extend_from_slice(&v.to_le_bytes());
+        }
+        let status =
+            winioctl::parse_battery_status(&ioctl(&h, IOCTL_BATTERY_QUERY_STATUS, &wait, 16).ok()?)
+                .ok()?;
+        let mut q = Vec::with_capacity(12);
+        q.extend_from_slice(&tag.to_le_bytes());
+        q.extend_from_slice(&(BatteryLevel::Information as u32).to_le_bytes());
+        q.extend_from_slice(&0i32.to_le_bytes());
+        let info = ioctl(&h, IOCTL_BATTERY_QUERY_INFORMATION, &q, 64)
+            .ok()
+            .and_then(|b| winioctl::parse_battery_information(&b).ok());
+        if info
+            .as_ref()
+            .is_some_and(|i| i.capabilities & winioctl::BATTERY_SYSTEM_BATTERY == 0)
+        {
+            return None;
+        }
+        Some((status, info.and_then(|i| i.full_charged_capacity)))
+    }
+
+    pub fn cpu_now() -> CpuNow {
+        let n = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1);
+        let mut buf = vec![0u8; 24 * n.max(1) * 2];
+        // SAFETY: buf is writable for its full length.
+        let rc = unsafe {
+            CallNtPowerInformation(
+                ProcessorInformation,
+                null(),
+                0,
+                buf.as_mut_ptr() as *mut c_void,
+                buf.len() as u32,
+            )
+        };
+        let parsed = if rc == 0 {
+            winioctl::parse_processor_power(&buf[..24 * n])
+        } else {
+            None
+        };
+        CpuNow {
+            mhz: parsed.map(|p| p.0),
+            max_mhz: parsed.map(|p| p.1),
+            temp_c: None,
+            // MhzLimit below MaxMhz means the system is holding it back.
+            limit_pct: parsed
+                .filter(|p| p.1 > 0 && p.2 > 0)
+                .map(|p| ((p.2 as u64 * 100 / p.1 as u64).min(100)) as u8),
+            source: "CallNtPowerInformation(ProcessorInformation)".into(),
+        }
+    }
+
+    pub fn radios() -> Vec<Radio> {
+        let mut out = Vec::new();
+        let mut table: *mut MIB_IF_TABLE2 = null_mut();
+        // SAFETY: GetIfTable2 allocates the table; FreeMibTable releases it.
+        if unsafe { GetIfTable2(&mut table) } == 0 && !table.is_null() {
+            // SAFETY: the table holds NumEntries contiguous rows.
+            let rows = unsafe {
+                std::slice::from_raw_parts((*table).Table.as_ptr(), (*table).NumEntries as usize)
+            };
+            for row in rows {
+                const HARDWARE_INTERFACE: u8 = 1 << 0;
+                const FILTER_INTERFACE: u8 = 1 << 1;
+                let flags = row.InterfaceAndOperStatusFlags._bitfield;
+                if row.Type != IF_TYPE_IEEE80211
+                    || flags & HARDWARE_INTERFACE == 0
+                    || flags & FILTER_INTERFACE != 0
+                {
+                    continue;
+                }
+                out.push(Radio {
+                    kind: RadioKind::Wifi,
+                    name: from_wide(&row.Description),
+                    enabled: None,
+                    connected: Some(row.OperStatus == 1),
+                });
+            }
+            // SAFETY: freed once.
+            unsafe { FreeMibTable(table as *const c_void) };
+        }
+        if let Some(set) = DevInfo::new(&GUID_DEVCLASS_BLUETOOTH, DIGCF_PRESENT) {
+            for i in 0.. {
+                // SAFETY: plain data; cbSize set before use.
+                let mut info: SP_DEVINFO_DATA = unsafe { zeroed() };
+                info.cbSize = size_of::<SP_DEVINFO_DATA>() as u32;
+                // SAFETY: set is live.
+                if unsafe { SetupDiEnumDeviceInfo(set.0, i, &mut info) } == 0 {
+                    break;
+                }
+                let id = instance_id(&set, &info)
+                    .unwrap_or_default()
+                    .to_ascii_uppercase();
+                // Paired phones and headsets enumerate under BTHENUM and BTHLE;
+                // the radio itself sits on USB, PCI or an SoC bus.
+                if id.starts_with("BTH") || id.is_empty() {
+                    continue;
+                }
+                out.push(Radio {
+                    kind: RadioKind::Bluetooth,
+                    name: device_property(&set, &info, SPDRP_DEVICEDESC)
+                        .and_then(|d| winioctl::device_description(&d))
+                        .unwrap_or_else(|| "Bluetooth".into()),
+                    enabled: None,
+                    connected: None,
+                });
+            }
+        }
+        out
+    }
+
+    pub fn usb_devices() -> Vec<UsbDevice> {
+        let mut out = Vec::new();
+        let usb = wide("USB");
+        // SAFETY: usb is NUL-terminated; the set is destroyed by DevInfo.
+        let raw = unsafe {
+            SetupDiGetClassDevsW(
+                null(),
+                usb.as_ptr(),
+                null_mut(),
+                DIGCF_ALLCLASSES | DIGCF_PRESENT,
+            )
+        };
+        if raw == INVALID_HANDLE_VALUE as HDEVINFO || raw == 0 {
+            return out;
+        }
+        let set = DevInfo(raw);
+        for i in 0.. {
+            // SAFETY: plain data; cbSize set before use.
+            let mut info: SP_DEVINFO_DATA = unsafe { zeroed() };
+            info.cbSize = size_of::<SP_DEVINFO_DATA>() as u32;
+            // SAFETY: set is live.
+            if unsafe { SetupDiEnumDeviceInfo(set.0, i, &mut info) } == 0 {
+                break;
+            }
+            let Some(id) = instance_id(&set, &info) else {
+                continue;
+            };
+            let upper = id.to_ascii_uppercase();
+            // Root hubs, and the per-interface children of composite devices.
+            if upper.starts_with("USB\\ROOT_HUB") || upper.contains("&MI_") {
+                continue;
+            }
+            let name = device_property(&set, &info, SPDRP_DEVICEDESC)
+                .and_then(|d| winioctl::device_description(&d))
+                .unwrap_or_else(|| "USB device".into());
+            out.push(UsbDevice { id, name });
+        }
+        out
+    }
+
+    pub fn open_uncached(path: &Path) -> std::io::Result<File> {
+        let p = wide(&path.to_string_lossy());
+        // SAFETY: p is NUL-terminated; the handle is owned by the File.
+        let h = unsafe {
+            CreateFileW(
+                p.as_ptr(),
+                GENERIC_READ,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                null(),
+                OPEN_EXISTING,
+                FILE_FLAG_NO_BUFFERING | FILE_FLAG_SEQUENTIAL_SCAN,
+                null_mut(),
+            )
+        };
+        if h == INVALID_HANDLE_VALUE {
+            return Err(io::Error::last_os_error());
+        }
+        // SAFETY: h is a valid, owned file handle.
+        Ok(unsafe { File::from_raw_handle(h as _) })
     }
 }
 

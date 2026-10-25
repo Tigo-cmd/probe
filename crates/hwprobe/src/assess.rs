@@ -20,7 +20,7 @@ use crate::handson::{self, HandsOn, Outcome, TestKind};
 use crate::model::*;
 
 /// Bump whenever a weight, threshold or tier rule changes.
-pub const ASSESS_VERSION: &str = "1.1.0";
+pub const ASSESS_VERSION: &str = "1.2.0";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Assessment {
@@ -48,11 +48,18 @@ pub struct HandsOnSummary {
     pub not_run: Vec<TestKind>,
 }
 
-const ALL_TESTS: [TestKind; 5] = [
+const ALL_TESTS: [TestKind; 12] = [
     TestKind::Keyboard,
     TestKind::Pointer,
     TestKind::Screen,
     TestKind::Speakers,
+    TestKind::Camera,
+    TestKind::Battery,
+    TestKind::Charger,
+    TestKind::Performance,
+    TestKind::Storage,
+    TestKind::Wireless,
+    TestKind::Ports,
     TestKind::Physical,
 ];
 
@@ -1380,7 +1387,7 @@ pub fn assess_with(scan: &Scan, grade: &Grade, hands_on: Option<&HandsOn>) -> As
         for u in a.uses.iter_mut() {
             let relevant: Vec<_> = failed
                 .iter()
-                .filter(|t| t.kind != TestKind::Speakers || speakers_matter(u.use_case))
+                .filter(|t| test_matters(t.kind, u.use_case))
                 .collect();
             if relevant.is_empty() {
                 continue;
@@ -1448,8 +1455,15 @@ pub fn assess_with(scan: &Scan, grade: &Grade, hands_on: Option<&HandsOn>) -> As
     a
 }
 
-fn speakers_matter(u: UseCase) -> bool {
-    !matches!(u, UseCase::Programming | UseCase::Creative)
+/// Whether a failed test should limit a use. Most faults matter to every
+/// use; a few only to some.
+fn test_matters(kind: TestKind, u: UseCase) -> bool {
+    match kind {
+        TestKind::Speakers => !matches!(u, UseCase::Programming | UseCase::Creative),
+        TestKind::Camera => matches!(u, UseCase::Work | UseCase::Study | UseCase::Everyday),
+        TestKind::Battery | TestKind::Charger => !matches!(u, UseCase::Gaming | UseCase::Video),
+        _ => true,
+    }
 }
 
 fn fit_from_score(score: u8) -> Fit {
@@ -1866,7 +1880,7 @@ mod tests {
             .any(|t| t.contains("Keyboard: Key K did not register")));
         let summary = a.hands_on.unwrap();
         assert_eq!((summary.finished, summary.passed), (1, 0));
-        assert_eq!(summary.not_run.len(), 4);
+        assert_eq!(summary.not_run.len(), 11);
     }
 
     #[test]
