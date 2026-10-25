@@ -16,10 +16,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::grade::{Axis, Grade, Verdict};
+use crate::handson::{self, HandsOn, Outcome, TestKind};
 use crate::model::*;
 
 /// Bump whenever a weight, threshold or tier rule changes.
-pub const ASSESS_VERSION: &str = "1.0.0";
+pub const ASSESS_VERSION: &str = "1.1.0";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Assessment {
@@ -32,7 +33,28 @@ pub struct Assessment {
     pub best_for: Vec<UseCase>,
     /// Practical next steps, most important first.
     pub tips: Vec<String>,
+    /// What the hands-on tests found, when any were run.
+    pub hands_on: Option<HandsOnSummary>,
 }
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HandsOnSummary {
+    /// Tests with a finished result (passed or problems).
+    pub finished: usize,
+    pub passed: usize,
+    /// "Keyboard: K did not register", one line per problem.
+    pub problems: Vec<String>,
+    /// Tests not run yet, so the report can suggest them.
+    pub not_run: Vec<TestKind>,
+}
+
+const ALL_TESTS: [TestKind; 5] = [
+    TestKind::Keyboard,
+    TestKind::Pointer,
+    TestKind::Screen,
+    TestKind::Speakers,
+    TestKind::Physical,
+];
 
 // --------------------------------------------------------------- condition
 
@@ -1247,12 +1269,7 @@ fn fit_for(use_case: UseCase, scan: &Scan, grade: &Grade, specs: &Specs) -> UseF
         score = score.min(55);
     }
 
-    let fit = fit_override.unwrap_or(match score {
-        80.. => Fit::Great,
-        65..=79 => Fit::Good,
-        45..=64 => Fit::Limited,
-        _ => Fit::Poor,
-    });
+    let fit = fit_override.unwrap_or(fit_from_score(score));
     // Strongest signals first; within a priority, problems before strengths.
     reasons.sort_by_key(|(prio, r)| {
         (
@@ -1318,6 +1335,133 @@ fn tips(scan: &Scan, grade: &Grade, specs: &Specs) -> Vec<String> {
 }
 
 pub fn assess(scan: &Scan, grade: &Grade) -> Assessment {
+    assess_with(scan, grade, None)
+}
+
+/// The assessment with hands-on test results taken into account. A test
+/// that found a problem holds the condition score to 79 and limits every use
+/// it matters to; the problems lead the reasons and the next steps.
+pub fn assess_with(scan: &Scan, grade: &Grade, hands_on: Option<&HandsOn>) -> Assessment {
+    let mut a = assess_scan(scan, grade);
+    let Some(h) = hands_on else {
+        a.tips.insert(
+            a.tips.len().saturating_sub(1),
+            "Run the hands-on tests: keyboard, touchpad, screen and speakers take about five minutes.".into(),
+        );
+        return a;
+    };
+    let finished: Vec<_> = h
+        .tests
+        .iter()
+        .filter(|t| t.outcome != Outcome::Incomplete)
+        .collect();
+    let failed: Vec<_> = h.failed().collect();
+    let problems: Vec<String> = failed
+        .iter()
+        .flat_map(|t| {
+            let label = handson::kind_label(t.kind);
+            if t.problems.is_empty() {
+                vec![format!("{label}: {}", t.summary)]
+            } else {
+                t.problems.iter().map(|p| format!("{label}: {p}")).collect()
+            }
+        })
+        .collect();
+
+    if !failed.is_empty() {
+        let c = &mut a.condition;
+        if let Some(score) = c.score {
+            if score > 79 {
+                c.score = Some(79);
+                c.cap = Some(c.cap.map_or(79, |cap| cap.min(79)));
+                c.band = Some(Band::Good);
+            }
+        }
+        for u in a.uses.iter_mut() {
+            let relevant: Vec<_> = failed
+                .iter()
+                .filter(|t| t.kind != TestKind::Speakers || speakers_matter(u.use_case))
+                .collect();
+            if relevant.is_empty() {
+                continue;
+            }
+            for t in relevant.iter().rev() {
+                u.reasons.insert(
+                    0,
+                    Reason {
+                        tone: Tone::Bad,
+                        provenance: Provenance::Measured,
+                        text: format!("{} test: {}", handson::kind_label(t.kind), t.summary),
+                    },
+                );
+            }
+            if let Some(score) = u.score {
+                u.score = Some(score.min(64));
+                if !matches!(u.fit, Fit::Blocked | Fit::Unknown) {
+                    u.fit = fit_from_score(score.min(64));
+                }
+            }
+        }
+        let mut best: Vec<&UseFit> = a
+            .uses
+            .iter()
+            .filter(|u| matches!(u.fit, Fit::Great | Fit::Good))
+            .collect();
+        best.sort_by_key(|u| std::cmp::Reverse(u.score));
+        a.best_for = best.iter().map(|u| u.use_case).collect();
+        let at = a
+            .tips
+            .iter()
+            .take_while(|t| t.contains("lock") || t.contains("ex-company"))
+            .count();
+        a.tips.insert(
+            at,
+            format!(
+                "The hands-on tests found problems ({}). Ask the seller about them and adjust your offer.",
+                problems.join("; ")
+            ),
+        );
+    }
+    let not_run: Vec<TestKind> = ALL_TESTS
+        .into_iter()
+        .filter(|k| !finished.iter().any(|t| t.kind == *k))
+        .collect();
+    if !not_run.is_empty() {
+        let names: Vec<&str> = not_run.iter().map(|k| handson::kind_label(*k)).collect();
+        a.tips.insert(
+            a.tips.len().saturating_sub(1),
+            format!(
+                "Finish the hands-on tests: {} not run yet.",
+                names.join(", ")
+            ),
+        );
+    }
+    a.hands_on = Some(HandsOnSummary {
+        finished: finished.len(),
+        passed: finished
+            .iter()
+            .filter(|t| t.outcome == Outcome::Passed)
+            .count(),
+        problems,
+        not_run,
+    });
+    a
+}
+
+fn speakers_matter(u: UseCase) -> bool {
+    !matches!(u, UseCase::Programming | UseCase::Creative)
+}
+
+fn fit_from_score(score: u8) -> Fit {
+    match score {
+        80.. => Fit::Great,
+        65..=79 => Fit::Good,
+        45..=64 => Fit::Limited,
+        _ => Fit::Poor,
+    }
+}
+
+fn assess_scan(scan: &Scan, grade: &Grade) -> Assessment {
     let specs = specs(scan);
     let uses: Vec<UseFit> = USE_CASES
         .iter()
@@ -1335,6 +1479,7 @@ pub fn assess(scan: &Scan, grade: &Grade) -> Assessment {
         tips: tips(scan, grade, &specs),
         specs,
         uses,
+        hands_on: None,
     }
 }
 
@@ -1681,6 +1826,77 @@ mod tests {
         assert!(g.score.unwrap() <= 55);
         assert!(g.reasons.iter().any(|r| r.text.contains("Mac")));
         assert_eq!(fit(&a, UseCase::Video).fit, Fit::Great);
+    }
+
+    fn hands_on(kind: TestKind, outcome: Outcome, problems: &[&str]) -> HandsOn {
+        let mut h = HandsOn::default();
+        h.record(crate::handson::TestResult {
+            kind,
+            outcome,
+            tested_at: 1,
+            summary: if problems.is_empty() {
+                "All keys registered".into()
+            } else {
+                "2 keys did not register".into()
+            },
+            problems: problems.iter().map(|p| p.to_string()).collect(),
+            detail: serde_json::Value::Null,
+        });
+        h
+    }
+
+    #[test]
+    fn a_failed_hands_on_test_caps_the_score_and_leads_the_reasons() {
+        let s = machine();
+        let g = grade(&s);
+        let h = hands_on(
+            TestKind::Keyboard,
+            Outcome::Problems,
+            &["Key K did not register", "Key L did not register"],
+        );
+        let a = assess_with(&s, &g, Some(&h));
+        assert_eq!(a.condition.score, Some(79));
+        assert_eq!(a.condition.cap, Some(79));
+        let work = fit(&a, UseCase::Work);
+        assert_eq!(work.fit, Fit::Limited);
+        assert!(work.reasons[0].text.starts_with("Keyboard test"));
+        assert!(a
+            .tips
+            .iter()
+            .any(|t| t.contains("Keyboard: Key K did not register")));
+        let summary = a.hands_on.unwrap();
+        assert_eq!((summary.finished, summary.passed), (1, 0));
+        assert_eq!(summary.not_run.len(), 4);
+    }
+
+    #[test]
+    fn speakers_do_not_limit_coding_and_passes_change_nothing() {
+        let s = machine();
+        let g = grade(&s);
+        let plain = assess(&s, &g);
+        let speakers = hands_on(
+            TestKind::Speakers,
+            Outcome::Problems,
+            &["Right speaker silent"],
+        );
+        let a = assess_with(&s, &g, Some(&speakers));
+        assert_eq!(
+            fit(&a, UseCase::Programming).score,
+            fit(&plain, UseCase::Programming).score
+        );
+        assert!(fit(&a, UseCase::Everyday).score.unwrap() <= 64);
+
+        let passed = hands_on(TestKind::Keyboard, Outcome::Passed, &[]);
+        let a = assess_with(&s, &g, Some(&passed));
+        assert_eq!(a.condition.score, plain.condition.score);
+        assert!(plain
+            .tips
+            .iter()
+            .any(|t| t.starts_with("Run the hands-on tests")));
+        assert!(a
+            .tips
+            .iter()
+            .any(|t| t.starts_with("Finish the hands-on tests")));
     }
 
     #[test]

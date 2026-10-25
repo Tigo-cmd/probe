@@ -18,7 +18,7 @@ use std::sync::Mutex;
 
 use hwprobe::fingerprint::Divergence;
 use hwprobe::grade::{self, Grade};
-use hwprobe::{assess, report, Assessment, Fingerprint, Scan};
+use hwprobe::{assess, assess_with, report, Assessment, Fingerprint, HandsOn, Scan};
 use scanstore::{Origin, QueueCounts, Store, Summary};
 use serde::Serialize;
 use tauri::Manager;
@@ -48,6 +48,8 @@ pub struct Opened {
     pub scan: Scan,
     pub grade: Grade,
     pub assessment: Assessment,
+    /// Hands-on test results recorded for this scan, if any.
+    pub hands_on: Option<HandsOn>,
     /// The history row for this scan; `None` when the history is unavailable.
     pub record: Option<Summary>,
     /// Other stored scans that claim to be the same machine, newest first.
@@ -64,15 +66,14 @@ pub fn record(store: &mut Store, scan: Scan, origin: Origin) -> Result<Opened, S
 fn opened(store: &Store, scan: Scan, id: i64) -> Result<Opened, String> {
     let record = store.summary(id).map_err(|e| e.to_string())?;
     let earlier = store.same_machine(&scan).map_err(|e| e.to_string())?;
-    let Graded {
-        scan,
-        grade,
-        assessment,
-    } = graded(scan);
+    let hands_on = store.hands_on(id).map_err(|e| e.to_string())?;
+    let grade = grade::grade(&scan);
+    let assessment = assess_with(&scan, &grade, hands_on.as_ref());
     Ok(Opened {
         scan,
         grade,
         assessment,
+        hands_on,
         record: Some(record),
         earlier,
         history_error: None,
@@ -89,6 +90,7 @@ fn unrecorded(scan: Scan, error: String) -> Opened {
         scan,
         grade,
         assessment,
+        hands_on: None,
         record: None,
         earlier: Vec::new(),
         history_error: Some(error),
@@ -286,9 +288,49 @@ fn save_scan(path: String, scan: Scan) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn save_text_report(path: String, scan: Scan) -> Result<(), String> {
+fn save_text_report(
+    history: tauri::State<'_, History>,
+    path: String,
+    scan: Scan,
+    id: Option<i64>,
+) -> Result<(), String> {
     let g = grade::grade(&scan);
-    fs::write(&path, report::render(&scan, &g)).map_err(|e| format!("{path}: {e}"))
+    // Include hands-on results when the scan is in the history; a missing
+    // history only means the report goes without them.
+    let hands_on = id.and_then(|id| {
+        history
+            .with(|s| s.hands_on(id).map_err(|e| e.to_string()))
+            .ok()
+            .flatten()
+    });
+    fs::write(&path, report::render_with(&scan, &g, hands_on.as_ref()))
+        .map_err(|e| format!("{path}: {e}"))
+}
+
+/// Record one finished hands-on test against a stored scan and return the
+/// scan re-assessed with it.
+pub fn record_hands_on(
+    store: &mut Store,
+    id: i64,
+    result: hwprobe::handson::TestResult,
+) -> Result<Opened, String> {
+    let mut h = store
+        .hands_on(id)
+        .map_err(|e| e.to_string())?
+        .unwrap_or_default();
+    h.record(result);
+    store.set_hands_on(id, &h).map_err(|e| e.to_string())?;
+    let (_, scan) = store.get(id).map_err(|e| e.to_string())?;
+    opened(store, scan, id)
+}
+
+#[tauri::command]
+fn save_hands_on_result(
+    history: tauri::State<'_, History>,
+    id: i64,
+    result: hwprobe::handson::TestResult,
+) -> Result<Opened, String> {
+    history.with(|s| record_hands_on(s, id, result))
 }
 
 #[tauri::command]
@@ -401,6 +443,7 @@ pub fn run() {
             save_scan,
             save_text_report,
             compare_with,
+            save_hands_on_result,
             team_status,
             team_connect,
             team_disconnect,
@@ -439,6 +482,33 @@ mod tests {
             },
         });
         s
+    }
+
+    #[test]
+    fn a_hands_on_result_is_kept_and_changes_the_assessment() {
+        use hwprobe::handson::{Outcome, TestKind, TestResult};
+        let mut store = Store::open_in_memory().unwrap();
+        let first = record(&mut store, sample(), Origin::Live).unwrap();
+        let id = first.record.as_ref().unwrap().id;
+        assert!(first.hands_on.is_none());
+        let fail = TestResult {
+            kind: TestKind::Screen,
+            outcome: Outcome::Problems,
+            tested_at: 1,
+            summary: "Dead or stuck pixels".into(),
+            problems: vec!["Dead or stuck pixels".into()],
+            detail: serde_json::Value::Null,
+        };
+        let after = record_hands_on(&mut store, id, fail).unwrap();
+        assert_eq!(after.hands_on.as_ref().unwrap().tests.len(), 1);
+        let summary = after.assessment.hands_on.as_ref().unwrap();
+        assert_eq!(summary.problems, ["Screen: Dead or stuck pixels"]);
+        // Reopening from the history shows the same result.
+        let (_, scan) = store.get(id).unwrap();
+        assert_eq!(opened(&store, scan, id).unwrap().hands_on, after.hands_on);
+        assert!(
+            record_hands_on(&mut store, 999, after.hands_on.unwrap().tests[0].clone()).is_err()
+        );
     }
 
     #[test]

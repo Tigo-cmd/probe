@@ -109,14 +109,14 @@ export async function saveScanAs(scan) {
   return path;
 }
 
-export async function saveTextReportAs(scan) {
+export async function saveTextReportAs(scan, id = null) {
   requireTauri();
   const path = await save({
     defaultPath: defaultFileName(scan, 'txt'),
     filters: [{ name: 'Text report', extensions: ['txt'] }],
   });
   if (!path) return null;
-  await invoke('save_text_report', { path, scan });
+  await invoke('save_text_report', { path, scan, id });
   return path;
 }
 
@@ -198,4 +198,35 @@ export async function teamLookup(scan, exclude) {
   }
   requireTauri();
   return invoke('team_lookup', { scan, exclude: exclude ?? null });
+}
+
+// ------------------------------------------------------- hands-on tests
+
+/**
+ * Record one finished hands-on test against a stored scan. Returns the scan
+ * re-assessed with the result, as Rust computes it.
+ */
+export async function saveHandsOnResult(id, result, current) {
+  if (import.meta.env.DEV && demoMode) {
+    // Design preview: keep the result, but the assessment is not recomputed.
+    const tests = (current.hands_on?.tests ?? []).filter((t) => t.kind !== result.kind).concat(result);
+    return { ...current, hands_on: { version: 1, tests } };
+  }
+  requireTauri();
+  return invoke('save_hands_on_result', { id, result });
+}
+
+/** Full screen for the screen test; falls back to the browser API. */
+export async function setFullscreen(on) {
+  if (inTauri) {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window');
+    await getCurrentWindow().setFullscreen(on);
+    return;
+  }
+  try {
+    if (on && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+    if (!on && document.fullscreenElement) await document.exitFullscreen();
+  } catch {
+    // Fullscreen refused: the test still runs inside the window.
+  }
 }

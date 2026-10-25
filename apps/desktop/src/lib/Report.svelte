@@ -7,6 +7,8 @@
   import Ring from './Ring.svelte';
   import SpecTiles from './SpecTiles.svelte';
   import UseFit from './UseFit.svelte';
+  import ThemeSwitch from './ThemeSwitch.svelte';
+  import { OUTCOMES, TESTS } from './handson.js';
   import VerdictBadge from './VerdictBadge.svelte';
   import {
     AXES,
@@ -39,7 +41,7 @@
   } from './api.js';
   import { matchedOn, SYNC_STATES } from './present.js';
 
-  let { opened, origin, onback, onrescan = null, team = null } = $props();
+  let { opened, origin, onback, onrescan = null, team = null, onhandson = null } = $props();
   const scan = $derived(opened.scan);
   const grade = $derived(opened.grade);
   const assessment = $derived(opened.assessment);
@@ -86,7 +88,8 @@
     }
   }
   const saveScan = () => act(() => saveScanAs(scan), (p) => `Scan saved to ${p}`);
-  const saveText = () => act(() => saveTextReportAs(scan), (p) => `Text report saved to ${p}`);
+  const saveText = () => act(() => saveTextReportAs(scan, record?.id ?? null), (p) => `Text report saved to ${p}`);
+  const handsOn = $derived(Object.fromEntries((opened.hands_on?.tests ?? []).map((t) => [t.kind, t])));
   const compare = () =>
     act(
       () => compareWithSaved(scan),
@@ -173,6 +176,7 @@
     <button onclick={compare}><Icon name="compare" size={16} /> Compare…</button>
     <button onclick={saveText}><Icon name="doc" size={16} /> Text report…</button>
     <button class="primary" onclick={saveScan}><Icon name="save" size={16} /> Save scan…</button>
+    <ThemeSwitch />
   </div>
 </div>
 
@@ -293,6 +297,34 @@
       </ol>
     </section>
   {/if}
+
+  <section class="card handson" aria-labelledby="handson-title">
+    <div class="block-head">
+      <div>
+        <h2 id="handson-title" class="section-title">Hands-on tests</h2>
+        <p class="faint small">Keyboard, touchpad, screen, speakers and a physical check. About five minutes.</p>
+      </div>
+      {#if onhandson && record}
+        <button class="primary" onclick={onhandson}>{opened.hands_on?.tests?.length ? 'Open tests' : 'Start tests'}</button>
+      {/if}
+    </div>
+    <ul class="ho-grid">
+      {#each TESTS as t (t.kind)}
+        {@const r = handsOn[t.kind]}
+        <li class="ho {r ? OUTCOMES[r.outcome].tone : 'none'}">
+          <Icon name={t.icon} size={18} />
+          <span class="ho-title">{t.title}</span>
+          <span class="ho-state">{r ? OUTCOMES[r.outcome].label : 'Not run'}</span>
+        </li>
+      {/each}
+    </ul>
+    {#if assessment.hands_on?.problems?.length}
+      <ul class="ho-problems">
+        {#each assessment.hands_on.problems as p (p)}<li>{p}</li>{/each}
+      </ul>
+    {/if}
+    {#if !record}<p class="faint small">Not in scan history, so test results cannot be kept for this scan.</p>{/if}
+  </section>
 
   <UseFit uses={assessment.uses} bind:selected={selectedUse} />
 
@@ -789,6 +821,60 @@
     font-weight: 700;
   }
 
+  .handson {
+    padding: 24px 28px;
+    display: grid;
+    gap: 14px;
+  }
+  .ho-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .ho {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--surface-2);
+    font-size: 13px;
+  }
+  .ho-title {
+    font-weight: 600;
+  }
+  .ho-state {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .ho.green .ho-state {
+    color: var(--green);
+  }
+  .ho.red {
+    background: var(--red-bg);
+  }
+  .ho.red .ho-state {
+    color: var(--red);
+  }
+  .ho.amber .ho-state {
+    color: var(--amber);
+  }
+  .ho-problems {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--red);
+    font-size: 14px;
+    display: grid;
+    gap: 4px;
+  }
+  @media (max-width: 760px) {
+    .ho-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
   .group {
     display: grid;
     gap: 14px;

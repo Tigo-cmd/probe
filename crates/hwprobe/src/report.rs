@@ -8,15 +8,26 @@ use std::fmt::Write;
 
 use crate::assess::{self, Fit, UseCase};
 use crate::grade::{Axis, Grade, Verdict};
+use crate::handson::{kind_label, HandsOn, Outcome};
 use crate::model::*;
 
 pub fn render(scan: &Scan, grade: &Grade) -> String {
+    render_with(scan, grade, None)
+}
+
+/// The report including hands-on test results, when any were run.
+pub fn render_with(scan: &Scan, grade: &Grade, hands_on: Option<&HandsOn>) -> String {
     let mut o = String::new();
-    let _ = render_into(&mut o, scan, grade);
+    let _ = render_into(&mut o, scan, grade, hands_on);
     o
 }
 
-fn render_into(o: &mut String, scan: &Scan, grade: &Grade) -> std::fmt::Result {
+fn render_into(
+    o: &mut String,
+    scan: &Scan,
+    grade: &Grade,
+    hands_on: Option<&HandsOn>,
+) -> std::fmt::Result {
     writeln!(
         o,
         "hwprobe {} · grader {} · {}",
@@ -57,7 +68,7 @@ fn render_into(o: &mut String, scan: &Scan, grade: &Grade) -> std::fmt::Result {
         )?;
     }
 
-    let assessment = assess::assess(scan, grade);
+    let assessment = assess::assess_with(scan, grade, hands_on);
     let c = &assessment.condition;
     match c.score {
         Some(score) => {
@@ -105,6 +116,30 @@ fn render_into(o: &mut String, scan: &Scan, grade: &Grade) -> std::fmt::Result {
         writeln!(o, "\nNEXT STEPS")?;
         for t in &assessment.tips {
             writeln!(o, "  · {t}")?;
+        }
+    }
+
+    if let Some(h) = hands_on.filter(|h| !h.tests.is_empty()) {
+        writeln!(
+            o,
+            "\nHANDS-ON TESTS  (observed by the person running probe)"
+        )?;
+        for t in &h.tests {
+            let outcome = match t.outcome {
+                Outcome::Passed => "PASSED",
+                Outcome::Problems => "PROBLEMS",
+                Outcome::Incomplete => "INCOMPLETE",
+            };
+            writeln!(
+                o,
+                "  {:<20} {:<10} {}",
+                kind_label(t.kind),
+                outcome,
+                t.summary
+            )?;
+            for p in &t.problems {
+                writeln!(o, "      · {p}")?;
+            }
         }
     }
 

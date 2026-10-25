@@ -1,0 +1,58 @@
+<script>
+  // System / Light / Dark, as a small segmented control.
+  import Icon from './Icon.svelte';
+  import { getTheme, setTheme, THEMES } from './theme.js';
+
+  let theme = $state(getTheme());
+  const LABELS = { system: 'Match system', light: 'Light', dark: 'Dark' };
+  const ICONS = { system: 'auto', light: 'sun', dark: 'moon' };
+
+  function choose(t) {
+    theme = t;
+    setTheme(t);
+  }
+</script>
+
+<div class="switch" role="radiogroup" aria-label="Appearance">
+  {#each THEMES as t (t)}
+    <button
+      role="radio"
+      aria-checked={theme === t}
+      class:on={theme === t}
+      title={LABELS[t]}
+      aria-label={LABELS[t]}
+      onclick={() => choose(t)}
+    >
+      <Icon name={ICONS[t]} size={16} />
+    </button>
+  {/each}
+</div>
+
+<style>
+  .switch {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--surface-3);
+  }
+  button {
+    width: 30px;
+    height: 26px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-3);
+  }
+  button:hover {
+    color: var(--text);
+    background: transparent;
+  }
+  button.on {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+</style>

@@ -19,13 +19,13 @@ use std::fmt;
 use std::path::Path;
 
 use hwprobe::grade::{self, Verdict, GRADER_VERSION};
-use hwprobe::Scan;
+use hwprobe::{HandsOn, Scan};
 use rusqlite::{params, Connection, OptionalExtension, Row};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 /// Bumped with every migration; stored in SQLite's `user_version`.
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug)]
 pub enum Error {
@@ -214,6 +214,20 @@ impl Store {
             )?;
             tx.commit()?;
         }
+        if version < 2 {
+            // Hands-on test results live beside the scan, never inside it,
+            // so running tests later does not change the scan's content id.
+            let tx = self.conn.transaction()?;
+            tx.execute_batch(
+                "CREATE TABLE hands_on (
+                    scan_id     INTEGER PRIMARY KEY REFERENCES scans (id),
+                    json        TEXT NOT NULL,
+                    updated_at  INTEGER NOT NULL
+                );
+                PRAGMA user_version = 2;",
+            )?;
+            tx.commit()?;
+        }
         Ok(())
     }
 
@@ -321,10 +335,36 @@ impl Store {
     }
 
     pub fn delete(&mut self, id: i64) -> Result<()> {
-        match self.conn.execute("DELETE FROM scans WHERE id = ?1", [id])? {
+        let tx = self.conn.transaction()?;
+        tx.execute("DELETE FROM hands_on WHERE scan_id = ?1", [id])?;
+        let n = tx.execute("DELETE FROM scans WHERE id = ?1", [id])?;
+        tx.commit()?;
+        match n {
             0 => Err(Error::NotFound(id)),
             _ => Ok(()),
         }
+    }
+
+    /// The hands-on test results recorded for a scan, if any.
+    pub fn hands_on(&self, id: i64) -> Result<Option<HandsOn>> {
+        let json: Option<String> = self
+            .conn
+            .query_row("SELECT json FROM hands_on WHERE scan_id = ?1", [id], |r| {
+                r.get(0)
+            })
+            .optional()?;
+        Ok(json.map(|j| serde_json::from_str(&j)).transpose()?)
+    }
+
+    /// Replace a scan's hands-on test results.
+    pub fn set_hands_on(&mut self, id: i64, hands_on: &HandsOn) -> Result<()> {
+        self.summary(id)?;
+        self.conn.execute(
+            "INSERT INTO hands_on (scan_id, json, updated_at) VALUES (?1, ?2, ?3)
+             ON CONFLICT (scan_id) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at",
+            params![id, serde_json::to_string(hands_on)?, now() as i64],
+        )?;
+        Ok(())
     }
 
     /// A free-text note, e.g. the listing or seller. `None` or blank clears it.
@@ -572,6 +612,69 @@ mod tests {
             ..Battery::default()
         });
         s
+    }
+
+    #[test]
+    fn hands_on_results_sit_beside_the_scan_and_go_with_it() {
+        use hwprobe::handson::{Outcome, TestKind, TestResult};
+        let mut store = Store::open_in_memory().unwrap();
+        let id = store.insert(&scan("A", 1), Origin::Live).unwrap().id;
+        let before = store.summary(id).unwrap().content_id;
+        assert_eq!(store.hands_on(id).unwrap(), None);
+
+        let mut h = HandsOn::default();
+        h.record(TestResult {
+            kind: TestKind::Keyboard,
+            outcome: Outcome::Passed,
+            tested_at: 2,
+            summary: "All keys registered".into(),
+            problems: vec![],
+            detail: serde_json::Value::Null,
+        });
+        store.set_hands_on(id, &h).unwrap();
+        store.set_hands_on(id, &h).unwrap();
+        assert_eq!(store.hands_on(id).unwrap(), Some(h.clone()));
+        assert_eq!(
+            store.summary(id).unwrap().content_id,
+            before,
+            "the scan is unchanged"
+        );
+
+        assert!(matches!(
+            store.set_hands_on(999, &h),
+            Err(Error::NotFound(999))
+        ));
+        store.delete(id).unwrap();
+        let again = store.insert(&scan("B", 1), Origin::Live).unwrap().id;
+        assert_eq!(
+            store.hands_on(again).unwrap(),
+            None,
+            "results did not outlive their scan"
+        );
+    }
+
+    #[test]
+    fn a_version_one_history_is_upgraded_in_place() {
+        let path =
+            std::env::temp_dir().join(format!("scanstore-v1-{}.sqlite3", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        {
+            let mut s = Store::open(&path).unwrap();
+            s.insert(&scan("OLD", 1), Origin::Live).unwrap();
+            s.conn
+                .execute_batch("DROP TABLE hands_on; PRAGMA user_version = 1;")
+                .unwrap();
+        }
+        let s = Store::open(&path).unwrap();
+        assert_eq!(s.list().unwrap().len(), 1);
+        let v: u32 = s
+            .conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(v, SCHEMA_VERSION);
+        assert_eq!(s.hands_on(s.list().unwrap()[0].id).unwrap(), None);
+        drop(s);
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]

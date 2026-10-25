@@ -1,7 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window: run scans, and pick files to save or open scans.",
-  "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open", "dialog:allow-save"]
+  "description": "The main window: run scans, pick files to save or open scans, go full screen for the screen test, and match the window frame to the chosen theme.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-set-theme"
+  ]
 }

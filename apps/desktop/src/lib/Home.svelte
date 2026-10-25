@@ -2,6 +2,7 @@
   import History from './History.svelte';
   import Icon from './Icon.svelte';
   import TeamCard from './TeamCard.svelte';
+  import ThemeSwitch from './ThemeSwitch.svelte';
   let {
     onscan,
     onscanlimited,
@@ -21,6 +22,7 @@
 </script>
 
 <main class="home">
+  <div class="topbar"><ThemeSwitch /></div>
   <section class="hero">
     <svg class="mark" viewBox="0 0 120 120" aria-hidden="true">
       <defs>
@@ -107,6 +109,11 @@
     padding: 64px 24px 56px;
     display: grid;
     gap: 40px;
+  }
+  .topbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: -40px 0 -24px;
   }
   .hero {
     display: grid;

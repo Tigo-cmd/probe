@@ -2,6 +2,7 @@
   import Home from './lib/Home.svelte';
   import Scanning from './lib/Scanning.svelte';
   import Report from './lib/Report.svelte';
+  import HandsOn from './lib/HandsOn.svelte';
   import {
     deleteStored,
     demoMode,
@@ -14,7 +15,7 @@
   } from './lib/api.js';
   import { scanFailure } from './lib/present.js';
 
-  /** @type {'home' | 'scanning' | 'report'} */
+  /** @type {'home' | 'scanning' | 'report' | 'tests'} */
   let view = $state('home');
   let opened = $state(null);
   let origin = $state('');
@@ -108,6 +109,8 @@
 
 {#if view === 'scanning'}
   <Scanning asking={privilege?.can_elevate ? privilege.method : ''} />
+{:else if view === 'tests' && opened}
+  <HandsOn {opened} onback={() => (view = 'report')} onsaved={(o) => (opened = o)} />
 {:else if view === 'report' && opened}
   <Report
     {opened}
@@ -115,6 +118,7 @@
     onback={back}
     onrescan={live && privilege?.can_elevate && !opened.scan.elevated ? () => scan({ full: true }) : null}
     {team}
+    onhandson={() => (view = 'tests')}
   />
 {:else}
   <Home

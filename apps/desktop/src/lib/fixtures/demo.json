@@ -474,7 +474,7 @@
     ]
   },
   "assessment": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "condition": {
       "score": 79,
       "band": "good",
@@ -772,9 +772,12 @@
     ],
     "tips": [
       "This looks like an ex-company laptop. Ask the seller for proof it was released by its previous owner.",
+      "Run the hands-on tests: keyboard, touchpad, screen and speakers take about five minutes.",
       "Scan again a few days later: a second scan makes the result much more reliable."
-    ]
+    ],
+    "hands_on": null
   },
+  "hands_on": null,
   "record": {
     "id": 3,
     "content_id": "12c5c6a713fe463a9f65f5528b70beb0509bb2b242a5828bbb08a2223ba4da92",

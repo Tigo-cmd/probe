@@ -144,6 +144,30 @@ The mechanism is `crates/elevate`; its quoting (AppleScript, Windows command
 lines) and outcome rules are tested on every OS. The Linux path was run end to
 end here: an unprivileged user, a real `pkexec`, granted and refused.
 
+### Hands-on tests
+
+From any report, **Hands-on tests** opens five guided checks. Results are
+kept beside the scan in the local history (never inside it, so the scan's
+content id does not change) and appear in the report and the text report.
+A test that finds a problem holds the condition score to 79, limits every
+use it matters to, and leads the next steps.
+
+| Test | How it works |
+| --- | --- |
+| Keyboard | A laptop-shaped map (Mac or PC) lights up each key as it registers, matched by physical position so any keyboard language works. Flags keys that register twice (worn switches) and keys held down for seconds (stuck). F-keys are optional; Fn never reaches software. |
+| Touchpad and mouse | Seven steps that advance by themselves when they see the right event: sweep the whole pad, click, right-click, double-click, drag, scroll both ways, then hands off for three seconds to catch a pointer that drifts on its own. Measures the report rate and notices a touchscreen. |
+| Screen | Full-screen black, white, red, green, blue, grey and a gradient. The tester can click any bad spot to mark it. Refresh rate is measured from frame timing; resolution and scaling are read. |
+| Speakers | A chime from the left and right in a random order; the tester says where they heard it, so a silent or swapped side is caught. Then a low-to-high sweep for buzzing. |
+| Physical inspection | Case, hinges, battery swelling, ports and charging, signs of liquid, screws and seals, webcam and microphone, smell and heat. |
+
+The scoring and wording for these live in `apps/desktop/src/lib/handson.js`
+(tested) and `crates/hwprobe/src/handson.rs`.
+
+### Appearance
+
+The switch at the top right picks Match system, Light or Dark. The choice is
+remembered on that computer and also sets the window frame.
+
 ## Team sharing (probe-sync)
 
 A shop or team can run one server so its computers share scans and can ask

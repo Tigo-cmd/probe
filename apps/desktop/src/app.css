@@ -51,8 +51,43 @@
   --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
+/* Dark colours. Applied when the system is dark, unless the user chose
+   light in the app, and always when the user chose dark. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-3: #3a3a3c;
+  --border: rgba(255, 255, 255, 0.08);
+  --separator: rgba(84, 84, 88, 0.6);
+  --text: #f5f5f7;
+  --text-2: #d1d1d6;
+  --text-3: #98989d;
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-soft: rgba(10, 132, 255, 0.18);
+  --focus: #409cff;
+
+  --green: #30d158;
+  --green-fill: #30d158;
+  --green-bg: rgba(48, 209, 88, 0.16);
+  --amber: #ff9f0a;
+  --amber-fill: #ff9f0a;
+  --amber-bg: rgba(255, 159, 10, 0.16);
+  --red: #ff453a;
+  --red-fill: #ff453a;
+  --red-bg: rgba(255, 69, 58, 0.16);
+  --grey: #98989d;
+  --grey-fill: #636366;
+  --grey-bg: rgba(142, 142, 147, 0.2);
+  --track: rgba(120, 120, 128, 0.32);
+  --shadow: none;
+  --shadow-lift: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     color-scheme: dark;
     --bg: #000000;
     --surface: #1c1c1e;
@@ -208,8 +243,13 @@ a {
   box-shadow: var(--shadow);
 }
 
+/* Cards need an edge where shadows do not show. */
+:root[data-theme='dark'] .card {
+  border: 1px solid var(--border);
+}
+
 @media (prefers-color-scheme: dark) {
-  .card {
+  :root:not([data-theme='light']) .card {
     border: 1px solid var(--border);
   }
 }

@@ -13,14 +13,16 @@ pub mod assess;
 pub mod backend;
 pub mod fingerprint;
 pub mod grade;
+pub mod handson;
 pub mod model;
 pub mod parse;
 pub mod report;
 
-pub use assess::{assess, Assessment};
+pub use assess::{assess, assess_with, Assessment};
 pub use backend::{is_elevated, scan};
 pub use fingerprint::Fingerprint;
 pub use grade::{Grade, Verdict};
+pub use handson::HandsOn;
 pub use model::Scan;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
