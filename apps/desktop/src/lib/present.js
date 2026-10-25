@@ -146,11 +146,11 @@ export function osName(os) {
 export function elevationHint(os) {
   switch (os) {
     case 'windows':
-      return 'Run probe as administrator to read drive health and NVMe serials.';
+      return 'Right-click probe and choose "Run as administrator" to read drive health and NVMe serials.';
     case 'macos':
-      return 'Run probe with sudo to check the firmware password on Intel Macs.';
+      return 'Scan again and enter your Mac password when asked, to check the firmware password on Intel Macs.';
     default:
-      return 'Run probe with sudo to read serials, drive health and the ACPI tables.';
+      return 'For serials, drive health and firmware tables, scan from a terminal with: sudo hwprobe scan -o scan.json, then use Open a saved scan.';
   }
 }
 
