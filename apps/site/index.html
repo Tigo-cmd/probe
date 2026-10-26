@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>probe · Know the laptop before you buy it</title>
+    <meta
+      name="description"
+      content="probe checks a used laptop's drives, battery and locks, runs twelve hands-on tests, scores its condition and tells you what it is good for. Free for Windows, macOS and Linux. Everything stays on the laptop."
+    />
+    <meta property="og:title" content="probe · Know the laptop before you buy it" />
+    <meta property="og:description" content="Drive health, battery wear, management locks and twelve hands-on tests, in one offline scan." />
+    <meta property="og:image" content="assets/app-report.webp" />
+    <meta name="theme-color" content="#111111" />
+    <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <!-- ============================================================ nav -->
+    <header class="nav" data-nav>
+      <div class="frame nav-inner">
+        <a class="brand" href="#top" aria-label="probe home">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <use href="#mark" />
+          </svg>
+          <span>probe</span>
+        </a>
+        <nav class="nav-links" aria-label="Main">
+          <a href="#why">Why probe</a>
+          <a href="#checks">What it checks</a>
+          <a href="#tests">Hands-on tests</a>
+          <a href="#shops">For shops</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <a class="pill pill-light nav-cta" href="#download" data-download-link>Download</a>
+        <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" data-nav-toggle>
+          <span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ========================================================= hero -->
+      <section class="hero dark" id="top">
+        <div class="hero-grid" aria-hidden="true" data-twinkle></div>
+        <div class="frame hero-inner">
+          <h1 class="display reveal" data-reveal>
+            Know the laptop<br />before you <span class="accent">buy it</span>
+          </h1>
+          <p class="lede reveal" data-reveal style="--d: 0.08s">
+            probe reads the drives, battery and locks of a used laptop, runs twelve hands-on tests and scores what it
+            finds. All on the laptop. Nothing is sent anywhere.
+          </p>
+          <div class="hero-actions reveal" data-reveal style="--d: 0.16s">
+            <a class="pill pill-red" href="#download" data-download-link>
+              <span data-download-label>Download free</span>
+            </a>
+            <a class="pill pill-ghost" href="#how">How it works</a>
+          </div>
+          <p class="hero-note reveal" data-reveal style="--d: 0.22s">Free · Windows, macOS and Linux · Works offline</p>
+
+          <!-- Motion piece: the condition ring wired to what probe reads. -->
+          <div class="hero-stage" aria-hidden="true">
+            <svg class="circuits" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="trace" x1="0" x2="1">
+                  <stop offset="0" stop-color="#fff" stop-opacity="0.04" />
+                  <stop offset="1" stop-color="#fff" stop-opacity="0.22" />
+                </linearGradient>
+                <linearGradient id="trace-r" x1="1" x2="0">
+                  <stop offset="0" stop-color="#fff" stop-opacity="0.04" />
+                  <stop offset="1" stop-color="#fff" stop-opacity="0.22" />
+                </linearGradient>
+              </defs>
+              <g class="trace-l" fill="none" stroke="url(#trace)" stroke-width="1.5">
+                <path id="t1" d="M120 300 H300 L360 240 H470" />
+                <path id="t2" d="M210 380 H340 L400 320 H470" />
+                <path id="t3" d="M60 200 H260 L320 140 H470" />
+              </g>
+              <g class="trace-r" fill="none" stroke="url(#trace-r)" stroke-width="1.5">
+                <path id="t4" d="M1080 300 H900 L840 240 H730" />
+                <path id="t5" d="M990 380 H860 L800 320 H730" />
+                <path id="t6" d="M1140 200 H940 L880 140 H730" />
+              </g>
+              <g class="pulses">
+                <circle r="3"><animateMotion dur="3.2s" repeatCount="indefinite" begin="0s"><mpath href="#t1" /></animateMotion></circle>
+                <circle r="3"><animateMotion dur="3.8s" repeatCount="indefinite" begin="1.1s"><mpath href="#t2" /></animateMotion></circle>
+                <circle r="3"><animateMotion dur="4.2s" repeatCount="indefinite" begin="0.6s"><mpath href="#t3" /></animateMotion></circle>
+                <circle r="3"><animateMotion dur="3.4s" repeatCount="indefinite" begin="0.3s"><mpath href="#t4" /></animateMotion></circle>
+                <circle r="3"><animateMotion dur="4s" repeatCount="indefinite" begin="1.6s"><mpath href="#t5" /></animateMotion></circle>
+                <circle r="3"><animateMotion dur="3.6s" repeatCount="indefinite" begin="2.2s"><mpath href="#t6" /></animateMotion></circle>
+              </g>
+            </svg>
+
+            <span class="node" style="--x: 10%; --y: 71%; --f: 0s" title="Drive"><svg viewBox="0 0 24 24"><use href="#i-drive" /></svg></span>
+            <span class="node" style="--x: 17.5%; --y: 90%; --f: 0.7s" title="Battery"><svg viewBox="0 0 24 24"><use href="#i-battery" /></svg></span>
+            <span class="node" style="--x: 5%; --y: 47%; --f: 1.4s" title="Keyboard"><svg viewBox="0 0 24 24"><use href="#i-keyboard" /></svg></span>
+            <span class="node" style="--x: 90%; --y: 71%; --f: 0.4s" title="Lock"><svg viewBox="0 0 24 24"><use href="#i-lock" /></svg></span>
+            <span class="node" style="--x: 82.5%; --y: 90%; --f: 1.1s" title="Wi-Fi"><svg viewBox="0 0 24 24"><use href="#i-wifi" /></svg></span>
+            <span class="node" style="--x: 95%; --y: 47%; --f: 1.8s" title="Screen"><svg viewBox="0 0 24 24"><use href="#i-display" /></svg></span>
+
+            <div class="orb">
+              <div class="orb-shell">
+                <svg class="orb-ring" viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="78" class="orb-track" />
+                  <circle cx="100" cy="100" r="78" class="orb-arc" pathLength="100" data-ring="79" />
+                </svg>
+                <div class="orb-score">
+                  <span class="orb-num" data-count="79">0</span>
+                  <span class="orb-label">Condition</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="stairs stairs-light" aria-hidden="true" data-stairs><i></i><i></i><i></i></div>
+
+      <!-- ======================================================== about -->
+      <section class="light" id="why">
+        <div class="frame split">
+          <div class="split-text">
+            <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>Why probe</p>
+            <h2 class="h2 reveal" data-reveal>
+              A used laptop can look perfect and still hide a failing drive, a worn-out battery or a company lock
+            </h2>
+            <p class="body reveal" data-reveal>
+              Sellers rarely know, and listings never say. probe reads the drive's own error counters, the battery's
+              real capacity and the management settings that let a company or an Apple Account take a laptop back,
+              then grades each one separately. A single serious problem is never averaged away by good parts.
+            </p>
+            <div class="badge-row reveal" data-reveal>
+              <span class="tag tag-mint">Measured</span>
+              <span class="tag tag-line">Claimed</span>
+              <span class="tag tag-line dotted">Inferred</span>
+              <span class="tag tag-line faint">Not assessable</span>
+            </div>
+            <p class="small muted reveal" data-reveal>
+              Every value in a report says where it came from, so you can tell a sensor reading from a string the seller
+              could have edited.
+            </p>
+          </div>
+          <div class="split-art reveal" data-reveal>
+            <span class="tag tag-mint float-tag">Drive health</span>
+            <div class="cube-scene" aria-hidden="true">
+              <div class="cube">
+                <i class="f front"></i><i class="f back"></i><i class="f right"></i><i class="f left"></i><i class="f top"></i><i class="f bottom"></i>
+              </div>
+            </div>
+            <p class="art-caption">Reads straight from the drive controller, not from a label</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================== services -->
+      <section class="dark" id="checks">
+        <div class="frame checks">
+          <div class="checks-head">
+            <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>What it checks</p>
+            <h2 class="h2 reveal" data-reveal>Everything a seller <span class="accent">won't mention</span></h2>
+            <p class="body muted-d reveal" data-reveal>
+              One scan reads the hardware directly. It takes about a minute and changes nothing on the laptop.
+            </p>
+            <a class="pill pill-red reveal" data-reveal href="#how">See how it works</a>
+          </div>
+          <div class="cards" data-stack>
+            <article class="paper">
+              <svg class="paper-icon red" viewBox="0 0 48 48"><use href="#g-drive" /></svg>
+              <p class="dot-label">Drives</p>
+              <h3>Error counters and wear, read from the drive itself</h3>
+              <p>Pending and reallocated sectors, NVMe media errors and life used: the signals that predict failure.</p>
+            </article>
+            <article class="paper">
+              <svg class="paper-icon teal" viewBox="0 0 48 48"><use href="#g-battery" /></svg>
+              <p class="dot-label">Battery</p>
+              <h3>How much charge it really holds today</h3>
+              <p>Capacity against design and charge cycles, plus a drain test that estimates real running time.</p>
+            </article>
+            <article class="paper">
+              <svg class="paper-icon violet" viewBox="0 0 48 48"><use href="#g-lock" /></svg>
+              <p class="dot-label">Ownership</p>
+              <h3>Company management and account locks</h3>
+              <p>Device management, Autopilot, Activation Lock, Absolute tracking and ex-company asset tags.</p>
+            </article>
+            <article class="paper">
+              <svg class="paper-icon green" viewBox="0 0 48 48"><use href="#g-chip" /></svg>
+              <p class="dot-label">Fit for you</p>
+              <h3>Advice for the way you will use it</h3>
+              <p>Processor, memory, graphics, storage and screen, rated for school, work, coding, video or gaming.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================= pixels -->
+      <section class="pixel-band" aria-label="The probe report">
+        <div class="pixel-wrap" data-pixels>
+          <img src="assets/app-report.webp" alt="A probe report: condition score 79 with rings for drives, battery and ownership" loading="lazy" />
+          <canvas aria-hidden="true"></canvas>
+        </div>
+      </section>
+
+      <!-- ====================================================== process -->
+      <section class="dark" id="how">
+        <div class="frame center-head">
+          <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>How it works</p>
+          <h2 class="h2 reveal" data-reveal>Three steps,<br />about <span class="accent">fifteen minutes</span></h2>
+        </div>
+        <div class="frame steps">
+          <article class="step reveal" data-reveal>
+            <svg class="iso" viewBox="0 0 220 140" aria-hidden="true"><use href="#iso-scan" /></svg>
+            <h3>1 · Scan</h3>
+            <p>Run probe on the laptop you are looking at. It asks for the system password once so it can read drive health and serials.</p>
+          </article>
+          <article class="step reveal" data-reveal style="--d: 0.1s">
+            <svg class="iso" viewBox="0 0 220 140" aria-hidden="true"><use href="#iso-test" /></svg>
+            <h3>2 · Test</h3>
+            <p>Twelve guided checks: every key, the touchpad, screen, speakers, camera, ports, charger and battery.</p>
+          </article>
+          <article class="step reveal" data-reveal style="--d: 0.2s">
+            <svg class="iso" viewBox="0 0 220 140" aria-hidden="true"><use href="#iso-decide" /></svg>
+            <h3>3 · Decide</h3>
+            <p>A condition score, a fit rating for your use, and a short list of what to ask the seller.</p>
+          </article>
+        </div>
+        <div class="stairs stairs-light" aria-hidden="true" data-stairs><i></i><i></i><i></i></div>
+      </section>
+
+      <!-- ===================================================== showcase -->
+      <section class="light" id="tests">
+        <div class="frame head-row">
+          <div>
+            <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>Inside a report</p>
+            <h2 class="h2 reveal" data-reveal>Clear answers,<br />with the evidence behind them</h2>
+          </div>
+          <a class="pill pill-dark reveal" data-reveal href="#download">Try it free</a>
+        </div>
+        <div class="frame cases">
+          <article class="case reveal" data-reveal>
+            <div class="case-text">
+              <h3>Condition score</h3>
+              <p>One number out of 100, with a ring for drives, battery and ownership. A red problem caps it at 39, so a dying drive can never hide behind a good battery.</p>
+              <a class="link" href="#faq">How the score works <svg viewBox="0 0 24 24"><use href="#i-arrow" /></svg></a>
+              <div class="stats">
+                <div><b>3</b><span>Areas graded separately</span></div>
+                <div><b>0</b><span>Missing values counted as a pass</span></div>
+              </div>
+            </div>
+            <div class="case-img"><img src="assets/app-report.webp" alt="Condition score ring and area rings" loading="lazy" /></div>
+          </article>
+          <article class="case reveal" data-reveal>
+            <div class="case-text">
+              <h3>Advice for your use</h3>
+              <p>Pick what the laptop is for and see a fit rating with the reasons: a 7th-gen dual-core can be great for school and poor for video editing.</p>
+              <a class="link" href="#checks">What it rates <svg viewBox="0 0 24 24"><use href="#i-arrow" /></svg></a>
+              <div class="stats">
+                <div><b>7</b><span>Kinds of use rated</span></div>
+                <div><b>6</b><span>Parts weighed for each</span></div>
+              </div>
+            </div>
+            <div class="case-img"><img src="assets/app-usefit.webp" alt="Fit ratings for everyday use, work, school, coding, photo, video and gaming" loading="lazy" /></div>
+          </article>
+          <article class="case reveal" data-reveal>
+            <div class="case-text">
+              <h3>Hands-on tests</h3>
+              <p>Software cannot feel a sticky key or see a dead pixel, so probe walks you through it. Each step watches for its own result and moves on by itself.</p>
+              <a class="link" href="#download">Run them yourself <svg viewBox="0 0 24 24"><use href="#i-arrow" /></svg></a>
+              <div class="stats">
+                <div><b>12</b><span>Guided tests</span></div>
+                <div><b>~15</b><span>Minutes for all of them</span></div>
+              </div>
+            </div>
+            <div class="case-img"><img src="assets/app-keyboard.webp" alt="The keyboard test lighting up each key as it is pressed" loading="lazy" /></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- =================================================== audiences -->
+      <section class="light tight" id="shops">
+        <div class="frame center-head">
+          <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>Made for</p>
+        </div>
+        <div class="frame audiences">
+          <div class="aud reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-user" /></svg><h3>Buyers</h3><p>Check a laptop before you hand over the money.</p></div>
+          <div class="aud reveal" data-reveal style="--d: 0.06s"><svg viewBox="0 0 24 24"><use href="#i-wrench" /></svg><h3>Repair shops</h3><p>A consistent intake check with a saved report.</p></div>
+          <div class="aud reveal" data-reveal style="--d: 0.12s"><svg viewBox="0 0 24 24"><use href="#i-boxes" /></svg><h3>Refurbishers</h3><p>Grade stock the same way, laptop after laptop.</p></div>
+          <div class="aud reveal" data-reveal style="--d: 0.18s"><svg viewBox="0 0 24 24"><use href="#i-school" /></svg><h3>Schools and IT teams</h3><p>Know what you are retiring or reissuing.</p></div>
+        </div>
+      </section>
+
+      <!-- ======================================================== bento -->
+      <section class="light">
+        <div class="frame center-head">
+          <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>Why trust it</p>
+          <h2 class="h2 reveal" data-reveal>Honest by design,<br />not by promise</h2>
+        </div>
+        <div class="frame bento">
+          <article class="tile tile-chart reveal" data-reveal>
+            <span class="tag tag-mint">Example</span>
+            <span class="tile-corner">Battery capacity vs. cycles</span>
+            <svg class="chart" viewBox="0 0 400 180" aria-label="Illustration: capacity falls as cycles rise">
+              <g class="grid-lines"><path d="M0 30H400M0 75H400M0 120H400M0 165H400" /></g>
+              <path class="chart-line" d="M10 34 C80 38 120 46 170 60 S260 92 300 104 S360 128 390 140" pathLength="100" />
+              <g class="chart-dots"><circle cx="10" cy="34" r="4" /><circle cx="170" cy="60" r="4" /><circle cx="300" cy="104" r="4" /><circle cx="390" cy="140" r="4" /></g>
+              <path class="chart-floor" d="M0 96H400" />
+              <text x="396" y="90" text-anchor="end">80% line</text>
+            </svg>
+            <p class="small muted">Below 80% of its design capacity a battery is worn out. probe shows exactly where yours sits.</p>
+          </article>
+          <article class="tile tile-red reveal" data-reveal style="--d: 0.06s">
+            <span class="pix" aria-hidden="true"></span>
+            <svg class="tile-icon" viewBox="0 0 24 24"><use href="#i-shield" /></svg>
+            <b class="big" data-count="0" data-suffix=" bytes">0 bytes</b>
+            <p>sent anywhere during a scan. probe works fully offline and needs no account.</p>
+          </article>
+          <article class="tile tile-cube reveal" data-reveal style="--d: 0.12s">
+            <span class="tag tag-mint">Provenance</span>
+            <div class="iso-stack" aria-hidden="true"><i></i><i></i><i></i></div>
+            <p class="small muted">Measured, claimed or inferred: every value is labelled.</p>
+          </article>
+          <article class="tile reveal" data-reveal>
+            <span class="tag tag-mint">Coverage</span>
+            <b class="big" data-count="12">0</b>
+            <p class="small muted">hands-on tests, from every key to the charger's wattage.</p>
+          </article>
+          <article class="tile tile-shot reveal" data-reveal style="--d: 0.06s">
+            <img src="assets/app-specs.webp" alt="Spec tiles for processor, memory, storage, graphics, screen and battery" loading="lazy" />
+          </article>
+          <article class="tile reveal" data-reveal style="--d: 0.12s">
+            <span class="tag tag-mint">Plain words</span>
+            <p class="quote">"probe never calls a laptop healthy. A clean result lowers risk; it does not clear the machine."</p>
+            <p class="small muted">From the rules every report follows</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================================================== principles -->
+      <section class="dark principles">
+        <div class="frame center-head">
+          <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>What it will not tell you</p>
+          <blockquote class="statement" data-statements aria-live="polite">
+            <p class="is-on">"Whether a laptop is stolen. No public register of laptop serials exists, and probe will not pretend otherwise."</p>
+            <p>"That a battery has not swollen. Lay the laptop flat and check the case: software cannot see that."</p>
+            <p>"That a missing reading is fine. If probe could not read something, the report says so and does not count it as a pass."</p>
+          </blockquote>
+          <div class="stars" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><use href="#i-check" /></svg><svg viewBox="0 0 24 24"><use href="#i-check" /></svg><svg viewBox="0 0 24 24"><use href="#i-check" /></svg>
+          </div>
+          <div class="statement-tabs" role="tablist" aria-label="Limits">
+            <button role="tab" aria-selected="true" data-statement="0"><b>Theft</b><span>Cannot be determined</span></button>
+            <button role="tab" aria-selected="false" data-statement="1"><b>Swelling</b><span>Check by eye</span></button>
+            <button role="tab" aria-selected="false" data-statement="2"><b>Missing data</b><span>Never a pass</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================== download -->
+      <section class="light" id="download">
+        <div class="frame head-row">
+          <div>
+            <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>Download</p>
+            <h2 class="h2 reveal" data-reveal>Free for Windows,<br />macOS and Linux</h2>
+          </div>
+          <p class="body muted reveal" data-reveal style="max-width: 36ch">
+            One app, no account, no installer extras. Put it on a USB stick and take it to the next viewing.
+          </p>
+        </div>
+        <div class="frame downloads">
+          <article class="dl reveal" data-reveal data-os="windows">
+            <svg viewBox="0 0 24 24"><use href="#os-windows" /></svg>
+            <h3>Windows</h3>
+            <p class="muted small">Windows 10 and 11, 64-bit</p>
+            <a class="pill pill-dark" data-file="probe-windows-x64-setup.exe">Download installer</a>
+            <a class="alt" data-file="probe-windows-x64.msi">.msi for IT deployment</a>
+          </article>
+          <article class="dl reveal" data-reveal data-os="mac" style="--d: 0.06s">
+            <svg viewBox="0 0 24 24"><use href="#os-apple" /></svg>
+            <h3>macOS</h3>
+            <p class="muted small">Apple silicon and Intel, macOS 11 or later</p>
+            <a class="pill pill-dark" data-file="probe-macos-universal.dmg">Download .dmg</a>
+            <a class="alt" data-file="hwprobe-macos.tar.gz">Command-line tool</a>
+          </article>
+          <article class="dl reveal" data-reveal data-os="linux" style="--d: 0.12s">
+            <svg viewBox="0 0 24 24"><use href="#os-linux" /></svg>
+            <h3>Linux</h3>
+            <p class="muted small">Ubuntu, Debian and derivatives, 64-bit</p>
+            <a class="pill pill-dark" data-file="probe-linux-amd64.deb">Download .deb</a>
+            <a class="alt" data-file="hwprobe-linux-amd64.tar.gz">Command-line tool</a>
+          </article>
+        </div>
+        <p class="frame small muted dl-note">
+          Early builds are not code-signed yet: Windows may show "More info, Run anyway", and on a Mac right-click the app
+          and choose Open the first time. <a href="#" data-releases>All releases and checksums</a>
+        </p>
+      </section>
+
+      <!-- ========================================================== faq -->
+      <section class="light" id="faq">
+        <div class="frame head-row">
+          <div>
+            <p class="eyebrow reveal" data-reveal><svg viewBox="0 0 24 24"><use href="#i-shield" /></svg>Questions</p>
+            <h2 class="h2 reveal" data-reveal>Before you<br />run your first scan</h2>
+          </div>
+        </div>
+        <div class="frame faq">
+          <div class="faq-list">
+            <details class="reveal" data-reveal>
+              <summary><span class="faq-meta">Privacy</span>Does probe send anything anywhere?</summary>
+              <p>No. Scans, tests and reports stay on the laptop. Team sharing is optional and off by default; even then, only scans you choose are sent, to a server your shop runs.</p>
+            </details>
+            <details class="reveal" data-reveal>
+              <summary><span class="faq-meta">Access</span>Why does it ask for my password?</summary>
+              <p>Drive health and serial numbers need administrator rights. probe asks the system's own password prompt once, reads, and changes nothing. You can also scan without it and get a partial report.</p>
+            </details>
+            <details class="reveal" data-reveal>
+              <summary><span class="faq-meta">Score</span>How is the condition score worked out?</summary>
+              <p>Drives, battery and ownership are graded separately and combined, then capped by the worst finding: anything red holds the score to 39, anything amber to 79. Areas that could not be read are left out and named, never counted as full marks.</p>
+            </details>
+            <details class="reveal" data-reveal>
+              <summary><span class="faq-meta">Limits</span>Can it tell me if a laptop is stolen?</summary>
+              <p>No, and nothing can: there is no public register of laptop serials. probe does show company management and account locks, which are the usual reason a resold laptop gets locked later.</p>
+            </details>
+            <details class="reveal" data-reveal>
+              <summary><span class="faq-meta">Shops</span>Can my team share scans?</summary>
+              <p>Yes. Run the small probe-sync server, give each computer a token, and share scans from their reports. Any device can then see whether your team has scanned a laptop before.</p>
+            </details>
+          </div>
+          <div class="faq-img reveal" data-reveal>
+            <img src="assets/app-tests.webp" alt="The list of hands-on tests in probe" loading="lazy" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================== cta -->
+      <section class="cta-band">
+        <div class="frame cta">
+          <svg class="cta-traces" viewBox="0 0 1180 300" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 80 H120 L170 130 H230" /><circle cx="250" cy="130" r="20" /><circle cx="310" cy="130" r="20" />
+            <path d="M0 230 H80 L120 190 H180" /><circle cx="200" cy="190" r="20" />
+            <path d="M1180 80 H1060 L1010 130 H950" /><circle cx="930" cy="130" r="20" /><circle cx="870" cy="130" r="20" />
+            <path d="M1180 230 H1100 L1060 190 H1000" /><circle cx="980" cy="190" r="20" />
+          </svg>
+          <h2 class="h2 reveal" data-reveal>Check the next laptop<br />before you pay for it</h2>
+          <div class="hero-actions reveal" data-reveal>
+            <a class="pill pill-light" href="#download" data-download-link><span data-download-label>Download free</span></a>
+            <a class="pill pill-dark" href="#shops">For shops and teams</a>
+          </div>
+        </div>
+      </section>
+      <div class="stairs stairs-red" aria-hidden="true" data-stairs><i></i><i></i><i></i></div>
+    </main>
+
+    <!-- ========================================================= footer -->
+    <footer class="footer dark">
+      <div class="frame foot-top">
+        <div class="foot-brand">
+          <a class="brand" href="#top"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><use href="#mark" /></svg><span>probe</span></a>
+          <p>Used-laptop checks that separate what was measured from what is merely claimed.</p>
+          <a class="pill pill-red" href="#download" data-download-link><span data-download-label>Download free</span></a>
+        </div>
+        <nav class="foot-links" aria-label="Footer">
+          <div><a href="#why">Why probe</a><a href="#checks">What it checks</a><a href="#tests">Hands-on tests</a><a href="#how">How it works</a></div>
+          <div><a href="#download">Download</a><a href="#" data-releases>Releases</a><a href="#shops">For shops</a><a href="#faq">FAQ</a></div>
+          <div><a href="#" data-repo>Source code</a><a href="#faq">Privacy</a><a href="#" data-repo-issues>Report a problem</a></div>
+        </nav>
+      </div>
+      <div class="frame foot-bottom">
+        <p class="small">© <span data-year>2026</span> probe. Not affiliated with any laptop maker.</p>
+        <p class="small">Works offline · No account · No tracking</p>
+      </div>
+      <p class="wordmark" aria-hidden="true">Know before you buy</p>
+    </footer>
+
+    <!-- ===================================================== symbols -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="mark" viewBox="0 0 32 32">
+        <rect width="32" height="32" rx="8" fill="#111" />
+        <g fill="none" stroke-linecap="round" stroke-width="3.2" transform="rotate(-90 16 16)">
+          <circle cx="16" cy="16" r="10" stroke="#d24a3c" stroke-dasharray="48 63" />
+          <circle cx="16" cy="16" r="5" stroke="#8fd3a0" stroke-dasharray="22 32" />
+        </g>
+      </symbol>
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6Z" fill="none" stroke="currentColor" stroke-width="1.7" /></symbol>
+        <symbol id="i-drive" viewBox="0 0 24 24"><path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5Z M4 14h16 M16.5 16.5h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-battery" viewBox="0 0 24 24"><path d="M3.5 8h14a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 2 14.5v-5A1.5 1.5 0 0 1 3.5 8Z M21.5 10.5v3 M5 11v2 M8 11v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-keyboard" viewBox="0 0 24 24"><path d="M3.5 6h17a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-17a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z M6.5 9.5h.01 M9.5 9.5h.01 M12.5 9.5h.01 M15.5 9.5h.01 M18 9.5h.01 M8 14.5h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><path d="M6 11h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0 M5.5 12.5a9.5 9.5 0 0 1 13 0 M8.5 16a5 5 0 0 1 7 0 M12 19.5h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-display" viewBox="0 0 24 24"><path d="M3.5 4.5h17a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-17a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1Z M9 20.5h6 M12 16.5v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14 M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></symbol>
+        <symbol id="i-user" viewBox="0 0 24 24"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8Z M4.5 20a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /></symbol>
+        <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.5 4.5a4.5 4.5 0 0 0-4.3 5.8L4 16.5 7.5 20l6.2-6.2a4.5 4.5 0 0 0 5.8-4.3l-2.6 2.6-3-.6-.6-3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" /></symbol>
+        <symbol id="i-boxes" viewBox="0 0 24 24"><path d="M3.5 13h7v7h-7Z M13.5 13h7v7h-7Z M8.5 4h7v7h-7Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" /></symbol>
+        <symbol id="i-school" viewBox="0 0 24 24"><path d="M2.5 9 12 4.5 21.5 9 12 13.5Z M6 11v5c2 2 10 2 12 0v-5 M21.5 9v5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" /></symbol>
+        <symbol id="os-windows" viewBox="0 0 24 24"><path d="M3 5.5 10.5 4.5v7H3Z M12 4.3 21 3v8.5h-9Z M3 12.5h7.5v7L3 18.5Z M12 12.5h9V21l-9-1.3Z" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="os-apple" viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.9-.9-3.1-.8c-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.4-1-2.4-3.8ZM14.2 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3Z" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="os-linux" viewBox="0 0 24 24"><path d="M12 3c-2.2 0-3.2 1.9-3.2 4.2 0 1.5.4 2.4-.6 3.9-1.2 1.8-2.7 3.9-2.7 6.2 0 .9.3 1.6.8 2.1-.6.4-1 .9-.9 1.4.2.8 1.7.8 3 .5 1-.2 1.9-.6 3.6-.6s2.6.4 3.6.6c1.3.3 2.8.3 3-.5.1-.5-.3-1-.9-1.4.5-.5.8-1.2.8-2.1 0-2.3-1.5-4.4-2.7-6.2-1-1.5-.6-2.4-.6-3.9C15.2 4.9 14.2 3 12 3Zm-1.2 4.6a.7.9 0 1 1 0 .01Zm2.4 0a.7.9 0 1 1 0 .01ZM12 9.2c.8 0 1.6.4 1.6.8S12.8 11 12 11s-1.6-.6-1.6-1 .8-.8 1.6-.8Z" fill="currentColor" stroke="none" /></symbol>
+      </g>
+      <!-- Line illustrations, drawn in the template's isometric style. -->
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+        <symbol id="g-drive" viewBox="0 0 48 48"><path d="M8 14h32v20H8Z M8 27h32 M33 31h.01 M14 19h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="g-battery" viewBox="0 0 48 48"><path d="M7 16h30v16H7Z M41 21v6 M12 21v6 M17 21v6 M22 21v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="g-lock" viewBox="0 0 48 48"><path d="M24 6a18 18 0 1 0 0 36a18 18 0 1 0 0-36Z M17 22h14v12H17Z M20 22v-4a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="g-chip" viewBox="0 0 48 48"><path d="M24 5 41 15v18L24 43 7 33V15Z M24 5v38 M7 15l34 18 M41 15 7 33" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></symbol>
+        <symbol id="iso-scan" viewBox="0 0 220 140">
+          <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+            <path d="M40 80 110 45 180 80 110 115Z" /><path d="M40 80v6l70 35 70-35v-6" />
+            <path d="M70 70 110 50 150 70 110 90Z" opacity=".6" />
+            <path d="M110 45V20l50 25v25" /><path d="M110 20 60 45v25" />
+            <path d="M75 35l35-17 35 17" stroke-dasharray="3 4" opacity=".7" />
+            <circle cx="110" cy="70" r="3" fill="currentColor" />
+          </g>
+        </symbol>
+        <symbol id="iso-test" viewBox="0 0 220 140">
+          <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+            <path d="M30 85 110 45 190 85 110 125Z" /><path d="M30 85v5l80 40 80-40v-5" />
+            <path d="M60 85l20-10 20 10-20 10Z M90 70l20-10 20 10-20 10Z M120 85l20-10 20 10-20 10Z M90 100l20-10 20 10-20 10Z" />
+            <path d="M80 75v-12 M110 60V40 M140 75v-15" stroke-dasharray="2 3" />
+            <circle cx="110" cy="36" r="4" /><circle cx="80" cy="59" r="3" /><circle cx="140" cy="56" r="3" />
+          </g>
+        </symbol>
+        <symbol id="iso-decide" viewBox="0 0 220 140">
+          <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+            <path d="M50 90 110 60 170 90 110 120Z" /><path d="M50 90v5l60 30 60-30v-5" />
+            <path d="M110 25a26 26 0 1 0 0.1 0" /><path d="M110 25a26 26 0 0 1 22 40" stroke-width="3.5" stroke-linecap="round" />
+            <path d="M100 52l7 7 13-14" stroke-width="2" stroke-linecap="round" />
+          </g>
+        </symbol>
+      </g>
+    </svg>
+
+    <script src="main.js" defer></script>
+  </body>
+</html>
