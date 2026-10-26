@@ -148,6 +148,18 @@ pub struct Identity {
     pub chassis_type: Field<u32>,
 }
 
+impl Identity {
+    /// True when the SMBIOS chassis type says this is a desktop, tower,
+    /// all-in-one, mini PC or server: a machine with no battery to expect.
+    /// Unknown or portable types return false.
+    pub fn is_desktop(&self) -> bool {
+        matches!(
+            self.chassis_type.get(),
+            Some(3..=7 | 13 | 15..=17 | 23 | 24 | 34..=36)
+        )
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Cpu {
     /// Brand string from CPUID. Comes from the processor, but CPUID can be forged.
@@ -384,6 +396,22 @@ pub struct ProbeNote {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn chassis_type_tells_desktops_from_portables() {
+        let with = |t: Option<u32>| Identity {
+            chassis_type: Field::claimed(t, "test"),
+            ..Identity::default()
+        };
+        // Desktop, tower, all-in-one, mini PC.
+        for t in [3, 7, 13, 35] {
+            assert!(with(Some(t)).is_desktop(), "type {t}");
+        }
+        // Laptop, notebook, convertible, unknown, unreported.
+        for t in [Some(9), Some(10), Some(31), Some(2), None] {
+            assert!(!with(t).is_desktop(), "type {t:?}");
+        }
+    }
 
     /// A saved scan must load back, whatever its drives reported.
     #[test]

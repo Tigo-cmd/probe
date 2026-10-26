@@ -459,7 +459,7 @@
       "Model, serial and capacity labels are read from rewritable firmware and are claims, not measurements.",
       "In a large field study (Google, FAST 2007) about 36% of drives that failed showed zero SMART error counts beforehand. A clean storage result lowers risk; it does not clear the drive.",
       "Battery health comes from the pack's own fuel gauge, which can be miscalibrated or reset. Swelling cannot be detected in software: check the case for bulging.",
-      "This report does not and cannot determine whether the laptop is stolen. No public register of laptop serials exists."
+      "This report does not and cannot determine whether the computer is stolen. No public register of computer serials exists."
     ],
     "not_assessable": [
       "Battery swelling",
@@ -771,7 +771,7 @@
       "study"
     ],
     "tips": [
-      "This looks like an ex-company laptop. Ask the seller for proof it was released by its previous owner.",
+      "This looks like an ex-company computer. Ask the seller for proof it was released by its previous owner.",
       "Run the hands-on tests: keyboard, touchpad, screen and speakers take about five minutes.",
       "Scan again a few days later: a second scan makes the result much more reliable."
     ],

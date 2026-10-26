@@ -53,7 +53,7 @@
   </div>
   {#if wifi.length}
     <div class="panel ask">
-      <p>Open the Wi-Fi menu of this laptop. Can you see nearby networks?</p>
+      <p>Open the Wi-Fi menu of this computer. Can you see nearby networks?</p>
       <div class="choice">
         <button class:primary={sees === true} onclick={() => (sees = true)}>Yes</button>
         <button class:primary={sees === false} onclick={() => (sees = false)}>No networks</button>

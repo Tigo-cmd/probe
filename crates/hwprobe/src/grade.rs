@@ -71,7 +71,7 @@ pub struct Grade {
 pub const STORAGE_CAVEAT: &str = "In a large field study (Google, FAST 2007) about 36% of drives that failed showed zero SMART error counts beforehand. A clean storage result lowers risk; it does not clear the drive.";
 pub const SNAPSHOT_CAVEAT: &str = "Single snapshot: confidence is limited. A second scan days later materially raises confidence.";
 pub const BATTERY_CAVEAT: &str = "Battery health comes from the pack's own fuel gauge, which can be miscalibrated or reset. Swelling cannot be detected in software: check the case for bulging.";
-pub const PROVENANCE_CAVEAT: &str = "This report does not and cannot determine whether the laptop is stolen. No public register of laptop serials exists.";
+pub const PROVENANCE_CAVEAT: &str = "This report does not and cannot determine whether the computer is stolen. No public register of computer serials exists.";
 pub const CLAIMED_CAVEAT: &str = "Model, serial and capacity labels are read from rewritable firmware and are claims, not measurements.";
 
 pub const NOT_ASSESSABLE: &[&str] = &[
@@ -401,12 +401,16 @@ fn write_plausibility(c: &str, hours: u128, bytes_written: u128, out: &mut Vec<F
 fn battery_axis(scan: &Scan) -> AxisGrade {
     let mut findings = Vec::new();
     if scan.batteries.is_empty() {
+        let message = if scan.identity.is_desktop() {
+            "No battery, as expected on a desktop computer"
+        } else {
+            "No battery detected. On a laptop this means a missing or dead pack: check physically"
+        };
         findings.push(finding(
             "battery",
             Verdict::NotGraded,
             Provenance::Measured,
-            "No battery detected. On a laptop this means a missing or dead pack: check physically"
-                .into(),
+            message.into(),
             "missing evidence is never a pass",
         ));
     }

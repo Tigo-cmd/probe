@@ -57,8 +57,8 @@
       const from = demoMode
         ? 'Design preview: sample data, not a real machine'
         : result.scan.elevated
-          ? 'Live scan of this laptop, full access'
-          : 'Live scan of this laptop, without administrator rights';
+          ? 'Live scan of this computer, full access'
+          : 'Live scan of this computer, without administrator rights';
       show(result, from, true);
     } catch (e) {
       error = scanFailure(e).text;

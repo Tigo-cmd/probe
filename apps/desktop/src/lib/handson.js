@@ -5,7 +5,7 @@
 // outcome 'passed' | 'problems' | 'incomplete', matching hwprobe::handson.
 
 export const TESTS = [
-  { kind: 'keyboard', group: 'quick', title: 'Keyboard', icon: 'keyboard', minutes: 2, blurb: 'Press every key once. Each one lights up when the laptop registers it.' },
+  { kind: 'keyboard', group: 'quick', title: 'Keyboard', icon: 'keyboard', minutes: 2, blurb: 'Press every key once. Each one lights up when the computer registers it.' },
   { kind: 'pointer', group: 'quick', title: 'Touchpad and mouse', icon: 'pointer', minutes: 1, blurb: 'Sweep, click, drag and scroll. Each step moves on by itself when it works.' },
   { kind: 'screen', group: 'quick', title: 'Screen', icon: 'display', minutes: 1, blurb: 'Full-screen colours to spot dead pixels, bright patches and lines.' },
   { kind: 'speakers', group: 'quick', title: 'Speakers', icon: 'speaker', minutes: 1, blurb: 'Sounds play from one side at a time; you say where you heard them.' },
@@ -163,7 +163,7 @@ export const POINTER_STEPS = [
   { id: 'double', title: 'Double-click', hint: 'Double-click the circle.' },
   { id: 'drag', title: 'Click and drag', hint: 'Drag the dot into the box and let go.' },
   { id: 'scroll', title: 'Scroll both ways', hint: 'Scroll up and down, then left and right (two fingers on a touchpad).' },
-  { id: 'still', title: 'Hands off', hint: 'Take your hands off the laptop for three seconds. The pointer should not move on its own.' },
+  { id: 'still', title: 'Hands off', hint: 'Take your hands off the mouse or touchpad for three seconds. The pointer should not move on its own.' },
 ];
 
 /** Grid coverage as a fraction, from a set of visited cell indexes. */

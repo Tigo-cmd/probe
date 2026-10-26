@@ -245,6 +245,9 @@ fn battery_area(scan: &Scan) -> (Option<u8>, String) {
     }
     match worst {
         Some((s, line)) => (Some(s), line),
+        None if scan.batteries.is_empty() && scan.identity.is_desktop() => {
+            (None, "Not scored: a desktop computer has no battery".into())
+        }
         None if scan.batteries.is_empty() => (None, "Not scored: no battery was detected".into()),
         None => (
             None,
@@ -272,7 +275,7 @@ fn encumbrance_area(scan: &Scan, verdict: Verdict) -> (Option<u8>, String) {
         Verdict::Red => (
             Some(0),
             format!(
-                "Someone else may still control this laptop: {}",
+                "Someone else may still control this computer: {}",
                 present.join("; ")
             ),
         ),
@@ -1178,7 +1181,7 @@ fn fit_for(use_case: UseCase, scan: &Scan, grade: &Grade, specs: &Specs) -> UseF
     }
 
     if verdict_of_axis(grade, Axis::Encumbrance) == Verdict::NotGraded {
-        unknowns.push("Whether the laptop is locked or managed by someone else".to_string());
+        unknowns.push("Whether the computer is locked or managed by someone else".to_string());
     }
 
     let known: Vec<_> = parts
@@ -1246,7 +1249,7 @@ fn fit_for(use_case: UseCase, scan: &Scan, grade: &Grade, specs: &Specs) -> UseF
     if verdict_of(Axis::Encumbrance) == Verdict::Red {
         score = score.min(10);
         fit_override = Some(Fit::Blocked);
-        reasons.push((100, measured(Tone::Bad, "Someone else may still control this laptop. Do not buy until the seller removes it".into())));
+        reasons.push((100, measured(Tone::Bad, "Someone else may still control this computer. Do not buy until the seller removes it".into())));
     }
     match verdict_of(Axis::Function) {
         Verdict::Red => {
@@ -1312,13 +1315,13 @@ fn tips(scan: &Scan, grade: &Grade, specs: &Specs) -> Vec<String> {
     if verdict_of(Axis::Encumbrance) == Verdict::Red {
         out.push("Ask the seller to remove the management or account lock, then scan again before paying.".into());
     } else if verdict_of(Axis::Encumbrance) == Verdict::Amber {
-        out.push("This looks like an ex-company laptop. Ask the seller for proof it was released by its previous owner.".into());
+        out.push("This looks like an ex-company computer. Ask the seller for proof it was released by its previous owner.".into());
     }
     if verdict_of(Axis::Function) == Verdict::Red {
         out.push("Back up nothing important to this drive. Factor the cost of a new drive into your offer.".into());
     }
     if specs.storage.kind == Some(StorageKind::Hdd) {
-        out.push("Swapping the hard drive for an SSD is the single biggest speed upgrade for this laptop.".into());
+        out.push("Swapping the hard drive for an SSD is the single biggest speed upgrade for this computer.".into());
     }
     if specs.battery_percent.is_some_and(|p| p < 70) {
         out.push("The battery is well worn. Check whether a replacement is available for this model, and use it in your price talk.".into());
@@ -1331,7 +1334,7 @@ fn tips(scan: &Scan, grade: &Grade, specs: &Specs) -> Vec<String> {
     }
     if scan.os == "linux" {
         out.push(
-            "Run the scan from the laptop's own Windows or macOS to check for management locks."
+            "Run the scan from the computer's own Windows or macOS to check for management locks."
                 .into(),
         );
     }

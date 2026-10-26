@@ -11,8 +11,8 @@
 
 <div class="test">
   <p class="eyebrow">Physical inspection · {answered} of {PHYSICAL_ITEMS.length}</p>
-  <h1>Look the laptop over</h1>
-  <p class="muted">Software cannot see any of this. Take a minute with the laptop in your hands.</p>
+  <h1>Look the computer over</h1>
+  <p class="muted">Software cannot see any of this. Take a minute with the computer in front of you.</p>
 
   <ul>
     {#each PHYSICAL_ITEMS as item (item.id)}

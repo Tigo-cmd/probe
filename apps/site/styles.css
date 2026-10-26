@@ -348,8 +348,35 @@ h3 {
 .nav-links a:hover {
   color: var(--white);
 }
-.nav-cta {
+.star-btn {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-d);
+  font-size: 14px;
+  text-decoration: none;
+  transition: border-color 150ms;
+}
+.star-btn:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.star-btn svg,
+.pill-icon {
+  width: 16px;
+  height: 16px;
+}
+.star-btn b {
+  font-weight: 500;
+  padding-left: 8px;
+  margin-left: 2px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
+.nav-cta {
   height: 38px;
   padding: 0 18px;
   font-size: 14px;
@@ -1468,6 +1495,165 @@ section.dark > .stairs {
 
 /* ------------------------------------------------------------ mobile */
 
+/* ------------------------------------------------------------- donate */
+
+.donate-hero {
+  padding-bottom: 120px !important;
+}
+.donate-hero .eyebrow {
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.give {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 20px;
+  padding: 0 32px;
+  border-inline: 0 !important;
+}
+.give-card {
+  background: var(--white);
+  border: 1px solid var(--line-l);
+  border-radius: 22px;
+  padding: 30px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  justify-items: start;
+}
+.give-card h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+.give-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--red);
+  color: var(--white);
+}
+.give-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.give-bank {
+  background: var(--ink);
+  color: var(--text-d);
+  border-color: transparent;
+}
+.give-bank .body {
+  color: var(--muted-d);
+}
+.bank {
+  width: 100%;
+  display: grid;
+  margin-top: 6px;
+}
+.bank div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line-d);
+}
+.bank dt {
+  color: var(--muted-d);
+  font-size: 14px;
+}
+.bank dd {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  text-align: right;
+}
+#bank-number {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+}
+.copy {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: var(--text-d);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.copy svg {
+  width: 15px;
+  height: 15px;
+  grid-area: 1 / 1;
+}
+.copy svg:last-child,
+.copy[data-done] svg:first-child {
+  display: none;
+}
+.copy[data-done] svg:last-child {
+  display: block;
+  color: var(--green);
+}
+.give-bank[data-ready='false'] .bank {
+  display: none;
+}
+.bank-pending {
+  font-size: 14px;
+  color: var(--muted-d);
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.give-bank[data-ready='true'] .bank-pending {
+  display: none;
+}
+.pill-count {
+  font-weight: 500;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+}
+.help-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  color: var(--muted-l);
+  font-size: 15px;
+}
+.help-list li {
+  padding-left: 18px;
+  position: relative;
+}
+.help-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--red);
+}
+.help-list a {
+  color: var(--ink);
+}
+.footer .foot-bottom a {
+  color: inherit;
+}
+@media (max-width: 960px) {
+  .give {
+    grid-template-columns: 1fr;
+    padding: 0;
+  }
+}
+
 @media (max-width: 960px) {
   .nav-links {
     display: none;
@@ -1550,6 +1736,9 @@ section.dark > .stairs {
   :root {
     --gutter: 16px;
   }
+  .star-btn {
+    display: none;
+  }
   section.dark,
   section.light {
     padding-block: 80px;
@@ -1624,4 +1813,8 @@ section.dark > .stairs {
   .pulses {
     display: none;
   }
+}
+
+.star-btn + .nav-cta {
+  margin-left: -18px;
 }

@@ -41,13 +41,13 @@
         <circle cx="60" cy="60" r="14" stroke="#ff9f0a" stroke-dasharray="58 88" />
       </g>
     </svg>
-    <h1>Know the laptop<br />before you buy it.</h1>
+    <h1>Know the computer<br />before you buy it.</h1>
     <p class="lede">
-      probe checks the drives, battery and locks of the laptop it runs on, scores its condition, and
-      tells you what it is good for. Everything happens on this laptop. Nothing is sent anywhere.
+      probe checks the drives, battery and locks of the computer it runs on, scores its condition, and
+      tells you what it is good for. Everything happens on this computer. Nothing is sent anywhere.
     </p>
     <div class="actions">
-      <button class="primary big" onclick={full ? onscan : onscanlimited} disabled={busy}>Scan this laptop</button>
+      <button class="primary big" onclick={full ? onscan : onscanlimited} disabled={busy}>Scan this computer</button>
       <button class="plain" onclick={onopen} disabled={busy}>Open a saved scan <Icon name="chevron" size={14} stroke={2.2} /></button>
     </div>
     {#if privilege?.elevated}
@@ -80,14 +80,14 @@
       <h2>Advice for your use</h2>
       <p class="muted">
         Tell it what you will do, from schoolwork to video editing or gaming, and see whether this
-        laptop is up to it, and why.
+        computer is up to it, and why.
       </p>
     </div>
     <div class="fact card">
       <span class="badge orange"><Icon name="eye" size={20} /></span>
       <h2>Honest about limits</h2>
       <p class="muted">
-        It cannot tell whether a laptop is stolen; no public register of serials exists. Swollen
+        It cannot tell whether a computer is stolen; no public register of serials exists. Swollen
         batteries, liquid damage and hinge wear need your own eyes.
       </p>
     </div>

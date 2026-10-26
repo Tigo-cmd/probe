@@ -199,7 +199,7 @@
         </div>
       </Ring>
       <div class="hero-text">
-        <p class="eyebrow">{machine.vendor || 'Laptop'}</p>
+        <p class="eyebrow">{machine.vendor || 'Computer'}</p>
         <h1 id="machine-title">{machine.name}</h1>
         <div class="verdict-line">
           <VerdictBadge value={grade.headline} size="lg" />
@@ -341,11 +341,11 @@
       {:else if !seen}
         <p class="faint small">Asking the team server…</p>
       {:else if seen.matches.length === 0}
-        <p class="muted small">Your team has no other scans that claim to be this laptop.</p>
+        <p class="muted small">Your team has no other scans that claim to be this computer.</p>
       {:else}
         <p class="muted small">
-          {seen.matches.length}{seen.truncated ? '+' : ''} earlier {seen.matches.length === 1 ? 'scan claims' : 'scans claim'} to be this laptop.
-          Identifiers can be changed, so a match is a lead, not proof. A laptop resurfacing at another seller is worth asking about.
+          {seen.matches.length}{seen.truncated ? '+' : ''} earlier {seen.matches.length === 1 ? 'scan claims' : 'scans claim'} to be this computer.
+          Identifiers can be changed, so a match is a lead, not proof. A computer resurfacing at another seller is worth asking about.
         </p>
         <ul class="plain">
           {#each seen.matches as m (m.content_id)}
@@ -363,7 +363,7 @@
   {#if opened.earlier?.length}
     <section class="card block earlier">
       <div class="block-head">
-        <h2 class="section-title">Earlier scans of this laptop</h2>
+        <h2 class="section-title">Earlier scans of this computer</h2>
         <span class="faint small">Matched on UUID or serial, which are claims</span>
       </div>
       <p class="muted small">Compare to see whether drives, battery, board or network cards changed in between.</p>
@@ -460,7 +460,7 @@
   </section>
 
   <details class="card block">
-    <summary class="plain-summary"><h2>About this laptop</h2><span class="chev"><Icon name="chevron" size={16} /></span></summary>
+    <summary class="plain-summary"><h2>About this computer</h2><span class="chev"><Icon name="chevron" size={16} /></span></summary>
     <div class="cols">
       <FieldList
         rows={[

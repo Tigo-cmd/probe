@@ -47,6 +47,50 @@ function setupDownloads() {
   document.querySelectorAll('[data-download-label]').forEach((s) => (s.textContent = OS[os].label));
 }
 
+// ---------------------------------------------------------------- stars
+
+/** Shows the repository's star count next to the Star buttons, if GitHub answers. */
+async function setupStars() {
+  const slots = document.querySelectorAll('[data-stars]');
+  if (!slots.length) return;
+  try {
+    const r = await fetch('https://api.github.com/repos/Tigo-cmd/probe', { headers: { Accept: 'application/vnd.github+json' } });
+    if (!r.ok) return;
+    const n = (await r.json()).stargazers_count;
+    if (typeof n !== 'number') return;
+    const text = n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n);
+    slots.forEach((s) => {
+      s.textContent = text;
+      s.hidden = false;
+    });
+  } catch {
+    // Offline or rate-limited: the buttons work without a count.
+  }
+}
+
+// --------------------------------------------------------------- donate
+
+/** Copy buttons on the donate page put the value next to them on the clipboard. */
+function setupCopy() {
+  document.querySelectorAll('[data-copy]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const value = document.getElementById(b.dataset.copy)?.textContent.trim();
+      if (!value) return;
+      try {
+        await navigator.clipboard.writeText(value);
+        b.dataset.done = '1';
+        b.setAttribute('aria-label', 'Copied');
+        setTimeout(() => {
+          delete b.dataset.done;
+          b.setAttribute('aria-label', 'Copy');
+        }, 1600);
+      } catch {
+        // Clipboard blocked: the value is still selectable by hand.
+      }
+    }),
+  );
+}
+
 // ------------------------------------------------------------- reveals
 
 function countUp(el) {
@@ -262,3 +306,5 @@ setupRing();
 setupTwinkle();
 setupPixels();
 setupStatements();
+setupStars();
+setupCopy();

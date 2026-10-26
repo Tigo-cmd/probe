@@ -54,7 +54,7 @@
     <div>
       <h2 id="team-title" class="section-title">Team sharing</h2>
       <p class="faint small">
-        Share chosen scans with your shop or team, and see when a laptop has been scanned before.
+        Share chosen scans with your shop or team, and see when a computer has been scanned before.
       </p>
     </div>
   </div>

@@ -15,7 +15,7 @@
         <circle class="arc c" cx="60" cy="60" r="22" stroke-dasharray="40 98" />
       </g>
     </svg>
-    <h1>Scanning this laptop</h1>
+    <h1>Scanning this computer</h1>
     <p class="muted">This usually takes under a minute.</p>
     {#if asking}
       <p class="ask">If the system asks for the {asking}, enter it to give the scan full access, or cancel to choose a limited scan.</p>
@@ -25,7 +25,7 @@
         <li style="animation-delay:{i * 180}ms">{r}</li>
       {/each}
     </ul>
-    <p class="faint small">Nothing is written to the drives, and nothing leaves this laptop.</p>
+    <p class="faint small">Nothing is written to the drives, and nothing leaves this computer.</p>
   </div>
 </main>
 

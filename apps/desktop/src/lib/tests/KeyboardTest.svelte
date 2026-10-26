@@ -67,7 +67,7 @@
     <div>
       <p class="eyebrow">Keyboard test</p>
       <h1>Press every key once</h1>
-      <p class="muted">Each key turns green when the laptop registers it. Grey keys are optional: many laptops use them for brightness or volume.</p>
+      <p class="muted">Each key turns green when the computer registers it. Grey keys are optional: many laptops use them for brightness or volume.</p>
     </div>
     <div class="count" aria-live="polite">
       <span class="num">{done}</span><span class="faint">/ {required.length}</span>

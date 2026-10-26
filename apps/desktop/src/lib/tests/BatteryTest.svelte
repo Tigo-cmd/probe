@@ -70,7 +70,7 @@
   const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 </script>
 
-<TestFrame eyebrow="Battery drain" title={phase === 'ready' ? 'How long does the battery really last?' : `Measuring… ${mmss(elapsed)} of ${TARGET_MIN}:00`} lede={phase === 'ready' ? `Unplug the charger and leave the laptop on this screen for ${TARGET_MIN} minutes. probe measures how fast the battery empties at light use. You can stop after three minutes, but longer is more accurate.` : ''}>
+<TestFrame eyebrow="Battery drain" title={phase === 'ready' ? 'How long does the battery really last?' : `Measuring… ${mmss(elapsed)} of ${TARGET_MIN}:00`} lede={phase === 'ready' ? `Unplug the charger and leave the computer on this screen for ${TARGET_MIN} minutes. probe measures how fast the battery empties at light use. You can stop after three minutes, but longer is more accurate.` : ''}>
   <div class="panel">
     {#if power?.on_ac && phase === 'ready'}
       <p class="status-line wait"><Icon name="plug" size={18} /> Unplug the charger to start.</p>

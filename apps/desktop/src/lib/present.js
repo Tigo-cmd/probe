@@ -204,7 +204,7 @@ export function historyLine(counts) {
   return `${scans} · ${parts.join(', ')}`;
 }
 
-/** "Same laptop, 14 days earlier". */
+/** "Same computer, 14 days earlier". */
 export function relativeAge(earlierSeconds, laterSeconds) {
   const days = Math.round((laterSeconds - earlierSeconds) / 86400);
   if (days <= 0) return 'earlier the same day';
@@ -339,7 +339,7 @@ export function machineName(identity) {
   const version = identity?.version?.value?.trim() ?? '';
   const readable = (s) => /[a-z]/.test(s) && /\s/.test(s);
   const name = readable(version) && !readable(model) ? version : model || version;
-  return { vendor, name: name || 'Unidentified laptop' };
+  return { vendor, name: name || 'Unidentified computer' };
 }
 
 /** Uses ordered best first; unrated ones last, in their original order. */

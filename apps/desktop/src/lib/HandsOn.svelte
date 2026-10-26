@@ -24,8 +24,12 @@
 
   let running = $state(null);
   let failure = $state('');
+  // Battery and charger tests only make sense when there is a battery.
+  const tests = $derived(
+    opened.scan.batteries?.length ? TESTS : TESTS.filter((t) => t.kind !== 'battery' && t.kind !== 'charger'),
+  );
   const results = $derived(Object.fromEntries((opened.hands_on?.tests ?? []).map((t) => [t.kind, t])));
-  const finished = $derived(TESTS.filter((t) => results[t.kind] && results[t.kind].outcome !== 'incomplete').length);
+  const finished = $derived(tests.filter((t) => results[t.kind] && results[t.kind].outcome !== 'incomplete').length);
   const machine = $derived(machineName(opened.scan.identity));
 
   async function complete(result) {
@@ -72,8 +76,8 @@
   </div>
   <main class="hub">
     <header>
-      <Ring value={(finished / TESTS.length) * 100} size={84} stroke={9} tone={finished === TESTS.length ? 'green' : 'blue'} label="{finished} of {TESTS.length} tests done">
-        <span class="frac">{finished}/{TESTS.length}</span>
+      <Ring value={(finished / tests.length) * 100} size={84} stroke={9} tone={finished === tests.length ? 'green' : 'blue'} label="{finished} of {tests.length} tests done">
+        <span class="frac">{finished}/{tests.length}</span>
       </Ring>
       <div>
         <p class="eyebrow">{machine.vendor} {machine.name}</p>
@@ -91,7 +95,7 @@
           <p class="faint small">{g.blurb}</p>
         </div>
         <ul class="list">
-          {#each TESTS.filter((t) => t.group === g.id) as t (t.kind)}
+          {#each tests.filter((t) => t.group === g.id) as t (t.kind)}
             {@const r = results[t.kind]}
             {@const o = r ? OUTCOMES[r.outcome] : null}
             <li class="card">

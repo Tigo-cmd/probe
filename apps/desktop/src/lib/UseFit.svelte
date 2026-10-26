@@ -31,7 +31,7 @@
 <section class="card usefit" aria-labelledby="usefit-title">
   <header>
     <h2 id="usefit-title" class="section-title">What will you use it for?</h2>
-    <p class="faint">Pick one to see how well this laptop suits it.</p>
+    <p class="faint">Pick one to see how well this computer suits it.</p>
   </header>
 
   <div class="picker" role="radiogroup" aria-label="Intended use" tabindex="-1" onkeydown={onkey}>

@@ -1,6 +1,6 @@
 [package]
 name = "hwprobe"
-description = "Hardware extraction and condition grading core for laptop verification"
+description = "Hardware extraction and condition grading core for used-computer verification"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

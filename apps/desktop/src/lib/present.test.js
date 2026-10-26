@@ -141,7 +141,7 @@ describe('assessment presentation', () => {
     const id = (vendor, model, version) => ({ vendor: { value: vendor }, model: { value: model }, version: { value: version } });
     expect(machineName(id('LENOVO', '20HRCTO1WW', 'ThinkPad X1 Carbon 5th'))).toEqual({ vendor: 'Lenovo', name: 'ThinkPad X1 Carbon 5th' });
     expect(machineName(id('Dell Inc.', 'Latitude 7490', null))).toEqual({ vendor: 'Dell', name: 'Latitude 7490' });
-    expect(machineName({}).name).toBe('Unidentified laptop');
+    expect(machineName({}).name).toBe('Unidentified computer');
   });
 
   it('ranks uses best first and keeps unrated ones last', () => {

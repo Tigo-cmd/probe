@@ -19,7 +19,7 @@
   {#if history.error}
     <p class="error small" role="alert">{history.error}. Scans still run; they are just not kept.</p>
   {:else if history.scans.length === 0}
-    <p class="muted small">Scans you run or open are kept here, on this computer, so you can compare a laptop with itself later.</p>
+    <p class="muted small">Scans you run or open are kept here, on this computer, so you can compare a computer with itself later.</p>
   {:else}
     <ul>
       {#each history.scans as s (s.id)}

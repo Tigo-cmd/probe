@@ -66,7 +66,7 @@
   );
 </script>
 
-<TestFrame eyebrow="Charger" {title} lede={phase === 'unsupported' ? 'The system gives no charger status here, so this test cannot run. Check by hand that the charging light comes on.' : 'Use the charger that comes with the laptop. probe watches for it to be detected and for the battery to take charge.'}>
+<TestFrame eyebrow="Charger" {title} lede={phase === 'unsupported' ? 'The system gives no charger status here, so this test cannot run. Check by hand that the charging light comes on.' : 'Use the charger that comes with the computer. probe watches for it to be detected and for the battery to take charge.'}>
   <div class="panel">
     <div class="steps">
       <div class="step {seen.unplugged ? 'ok' : phase === 'unplug' ? 'now' : ''}"><Icon name={seen.unplugged ? 'check' : 'plug'} size={18} /> Unplugged</div>

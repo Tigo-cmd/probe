@@ -1,4 +1,4 @@
-//! hwprobe: hardware extraction and condition grading for used-laptop verification.
+//! hwprobe: hardware extraction and condition grading for used-computer verification.
 //!
 //! The crate is independent of any GUI. It compiles into the desktop shell,
 //! the technician CLI and the CI test harness alike.
