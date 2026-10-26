@@ -1,0 +1,101 @@
+name: Release
+
+# Push a version tag (git tag v0.2.0 && git push origin v0.2.0) to build the
+# installers and publish them as a GitHub Release. Files get stable names so
+# the website can link to releases/latest/download/<name> and always serve
+# the newest version. Unsigned until code signing is set up.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            tauri_args: ""
+            bundle_dir: apps/desktop/src-tauri/target/release/bundle
+          - os: macos-latest
+            name: macos
+            tauri_args: --target universal-apple-darwin
+            bundle_dir: apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle
+          - os: ubuntu-latest
+            name: linux
+            tauri_args: --bundles deb
+            bundle_dir: apps/desktop/src-tauri/target/release/bundle
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - name: Install webview build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev
+      - name: Build the desktop app
+        working-directory: apps/desktop
+        run: |
+          npm ci
+          npx tauri build ${{ matrix.tauri_args }}
+      - name: Build the command-line tool and the team server
+        run: cargo build --release -p hwprobe-cli -p probe-sync
+      - name: Give the files stable names
+        shell: bash
+        run: |
+          mkdir -p out
+          b="${{ matrix.bundle_dir }}"
+          case "${{ matrix.name }}" in
+            windows)
+              cp "$b"/nsis/*.exe out/probe-windows-x64-setup.exe
+              cp "$b"/msi/*.msi out/probe-windows-x64.msi
+              cp target/release/hwprobe.exe out/hwprobe-windows-x64.exe
+              cp target/release/probe-sync.exe out/probe-sync-windows-x64.exe ;;
+            macos)
+              cp "$b"/dmg/*.dmg out/probe-macos-universal.dmg
+              tar -czf out/hwprobe-macos.tar.gz -C target/release hwprobe
+              tar -czf out/probe-sync-macos.tar.gz -C target/release probe-sync ;;
+            linux)
+              cp "$b"/deb/*.deb out/probe-linux-amd64.deb
+              tar -czf out/hwprobe-linux-amd64.tar.gz -C target/release hwprobe
+              tar -czf out/probe-sync-linux-amd64.tar.gz -C target/release probe-sync ;;
+          esac
+          ls -l out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.name }}
+          path: out/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Checksums
+        run: cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true
+          # Not a pre-release: releases/latest/download links skip those.
+          body: |
+            These builds are not code-signed yet. Windows SmartScreen needs
+            "More info, Run anyway"; on a Mac, right-click the app and choose
+            Open the first time. Verify downloads against SHA256SUMS.txt.
