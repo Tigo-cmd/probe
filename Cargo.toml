@@ -6,7 +6,7 @@ members = ["crates/hwprobe", "crates/hwprobe-cli", "crates/scanstore", "crates/e
 exclude = ["apps/desktop/src-tauri"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "UNLICENSED"
 rust-version = "1.75"
