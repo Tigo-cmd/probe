@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::*;
 
-pub const GRADER_VERSION: &str = "0.3.0";
+pub const GRADER_VERSION: &str = "0.4.0";
 
 /// Ordered from best to worst so `max()` picks the limiting factor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -163,7 +163,39 @@ fn function_axis(scan: &Scan) -> AxisGrade {
     for drive in &scan.storage {
         storage_findings(drive, &mut findings);
     }
+    if let Some(devices) = &scan.devices {
+        device_findings(scan, devices, &mut findings);
+    }
     axis(Axis::Function, findings)
+}
+
+/// Devices the operating system flags. A missing driver is often fixed by
+/// installing one, so these are Amber: worth asking about, not a failure.
+fn device_findings(scan: &Scan, devices: &DeviceCheck, out: &mut Vec<Finding>) {
+    let basis = if scan.os == "windows" {
+        "Device Manager problem codes"
+    } else {
+        "PCI devices with no driver bound"
+    };
+    if devices.problems.is_empty() {
+        out.push(finding(
+            "devices",
+            Verdict::Green,
+            Provenance::Measured,
+            format!("No device problems among {} devices", devices.checked),
+            basis,
+        ));
+    }
+    for p in &devices.problems {
+        let code = p.code.map(|c| format!(" (code {c})")).unwrap_or_default();
+        out.push(finding(
+            &format!("device/{}", p.name),
+            Verdict::Amber,
+            Provenance::Measured,
+            format!("{}: {}{code}", p.name, p.problem),
+            basis,
+        ));
+    }
 }
 
 fn storage_findings(drive: &Drive, out: &mut Vec<Finding>) {

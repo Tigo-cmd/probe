@@ -112,6 +112,28 @@ fn render_into(
             writeln!(o, "      {} {}", tag(r.provenance), r.text)?;
         }
     }
+    let w = &assessment.windows11;
+    if w.readiness != crate::windows11::Readiness::NotApplicable {
+        writeln!(o, "\nWINDOWS 11  {}", w.summary)?;
+        for r in &w.requirements {
+            let state = match r.met {
+                Some(true) => "MET",
+                Some(false) => "NOT MET",
+                None => "UNKNOWN",
+            };
+            writeln!(
+                o,
+                "  {:<16} {:<8} {} {}",
+                r.label,
+                state,
+                r.detail,
+                tag(r.provenance)
+            )?;
+        }
+        for f in &w.fixes {
+            writeln!(o, "  · {f}")?;
+        }
+    }
     if !assessment.tips.is_empty() {
         writeln!(o, "\nNEXT STEPS")?;
         for t in &assessment.tips {

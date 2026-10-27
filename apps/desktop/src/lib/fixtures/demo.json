@@ -321,6 +321,33 @@
         "detail": "no Absolute (Computrace) agent components found"
       }
     ],
+    "platform": {
+      "uefi": {
+        "value": true,
+        "provenance": "measured",
+        "source": "kernel32:GetFirmwareType"
+      },
+      "secure_boot": {
+        "value": false,
+        "provenance": "measured",
+        "source": "registry:HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State"
+      },
+      "tpm_version": {
+        "value": "2.0",
+        "provenance": "measured",
+        "source": "tbs:Tbsi_GetDeviceInfo"
+      }
+    },
+    "devices": {
+      "checked": 146,
+      "problems": [
+        {
+          "name": "Synaptics FP Sensors (WBF) (PID=0097)",
+          "problem": "No driver installed",
+          "code": 28
+        }
+      ]
+    },
     "probe_notes": [
       {
         "component": "storage/PhysicalDrive1",
@@ -329,15 +356,15 @@
     ]
   },
   "grade": {
-    "grader_version": "0.3.0",
+    "grader_version": "0.4.0",
     "headline": "amber",
     "limiting_axis": "encumbrance",
     "complete": true,
     "axes": [
       {
         "axis": "function",
-        "verdict": "green",
-        "checks": 4,
+        "verdict": "amber",
+        "checks": 5,
         "findings": [
           {
             "component": "storage/PhysicalDrive0",
@@ -373,6 +400,13 @@
             "provenance": "not_assessable",
             "message": "External drive behind a USB bridge: health data unverified, not graded as internal storage",
             "basis": "SMART over USB bridges is bridge-specific and frequently broken"
+          },
+          {
+            "component": "device/Synaptics FP Sensors (WBF) (PID=0097)",
+            "verdict": "amber",
+            "provenance": "measured",
+            "message": "Synaptics FP Sensors (WBF) (PID=0097): No driver installed (code 28)",
+            "basis": "Device Manager problem codes"
           }
         ]
       },
@@ -474,7 +508,7 @@
     ]
   },
   "assessment": {
-    "version": "1.2.0",
+    "version": "1.3.0",
     "condition": {
       "score": 79,
       "band": "good",
@@ -483,7 +517,7 @@
       "areas": [
         {
           "axis": "function",
-          "verdict": "green",
+          "verdict": "amber",
           "score": 96,
           "weight": 45,
           "summary": "No faults detected on PhysicalDrive0, about 96% of rated life left"
@@ -530,9 +564,14 @@
     "uses": [
       {
         "use_case": "everyday",
-        "fit": "great",
-        "score": 88,
+        "fit": "good",
+        "score": 79,
         "reasons": [
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "A drive needs attention: fine for now, budget for a replacement"
+          },
           {
             "tone": "fair",
             "provenance": "inferred",
@@ -563,9 +602,14 @@
       },
       {
         "use_case": "work",
-        "fit": "great",
-        "score": 84,
+        "fit": "good",
+        "score": 79,
         "reasons": [
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "A drive needs attention: fine for now, budget for a replacement"
+          },
           {
             "tone": "fair",
             "provenance": "inferred",
@@ -602,6 +646,11 @@
           {
             "tone": "fair",
             "provenance": "measured",
+            "text": "A drive needs attention: fine for now, budget for a replacement"
+          },
+          {
+            "tone": "fair",
+            "provenance": "measured",
             "text": "Battery holds 74% of its original capacity: expect somewhat shorter time unplugged"
           },
           {
@@ -632,6 +681,11 @@
         "fit": "limited",
         "score": 50,
         "reasons": [
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "A drive needs attention: fine for now, budget for a replacement"
+          },
           {
             "tone": "bad",
             "provenance": "inferred",
@@ -665,6 +719,11 @@
         "fit": "limited",
         "score": 50,
         "reasons": [
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "A drive needs attention: fine for now, budget for a replacement"
+          },
           {
             "tone": "bad",
             "provenance": "inferred",
@@ -704,6 +763,11 @@
         "score": 40,
         "reasons": [
           {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "A drive needs attention: fine for now, budget for a replacement"
+          },
+          {
             "tone": "bad",
             "provenance": "inferred",
             "text": "Intel Core i7, 7th gen, low-power: too slow for video editing and 3D"
@@ -736,6 +800,11 @@
         "fit": "poor",
         "score": 40,
         "reasons": [
+          {
+            "tone": "fair",
+            "provenance": "measured",
+            "text": "A drive needs attention: fine for now, budget for a replacement"
+          },
           {
             "tone": "bad",
             "provenance": "inferred",
@@ -775,12 +844,55 @@
       "Run the hands-on tests: keyboard, touchpad, screen and speakers take about five minutes.",
       "Scan again a few days later: a second scan makes the result much more reliable."
     ],
-    "hands_on": null
+    "hands_on": null,
+    "windows11": {
+      "readiness": "not_supported",
+      "summary": "Does not meet Windows 11's requirements: Processor",
+      "requirements": [
+        {
+          "label": "Processor",
+          "met": false,
+          "detail": "Intel Core i7-7600U is older than Windows 11 supports",
+          "provenance": "inferred"
+        },
+        {
+          "label": "Memory (4 GB)",
+          "met": true,
+          "detail": "15.8 GB usable",
+          "provenance": "measured"
+        },
+        {
+          "label": "Storage (64 GB)",
+          "met": true,
+          "detail": "1000 GB drive",
+          "provenance": "claimed"
+        },
+        {
+          "label": "UEFI firmware",
+          "met": true,
+          "detail": "started in UEFI mode",
+          "provenance": "measured"
+        },
+        {
+          "label": "Secure Boot",
+          "met": true,
+          "detail": "supported, currently off",
+          "provenance": "measured"
+        },
+        {
+          "label": "TPM 2.0",
+          "met": true,
+          "detail": "TPM 2.0 present",
+          "provenance": "measured"
+        }
+      ],
+      "fixes": []
+    }
   },
   "hands_on": null,
   "record": {
     "id": 3,
-    "content_id": "12c5c6a713fe463a9f65f5528b70beb0509bb2b242a5828bbb08a2223ba4da92",
+    "content_id": "28f0bae749c3222959233be8be99ad238994dad74073c3d22694bdd500a90787",
     "started_at": 1791302400,
     "stored_at": 1791302400,
     "origin": "live",
@@ -788,7 +900,7 @@
     "machine": "LENOVO 20HRCTO1WW",
     "serial": "PF0ABCDE",
     "headline": "amber",
-    "grader_version": "0.3.0",
+    "grader_version": "0.4.0",
     "label": null,
     "sync": "local",
     "sync_attempts": 0,
@@ -798,7 +910,7 @@
   "earlier": [
     {
       "id": 1,
-      "content_id": "64a7b2c4a239290984b8627b06a3d8dc985694b6ce931a5e1b408ac12e827d6e",
+      "content_id": "5484fbb91fb8c7430e6dc7480ddc1a678b841fb3954f521e849dbe7590c8a7f7",
       "started_at": 1790092800,
       "stored_at": 1790092800,
       "origin": "live",
@@ -806,7 +918,7 @@
       "machine": "LENOVO 20HRCTO1WW",
       "serial": "PF0ABCDE",
       "headline": "amber",
-      "grader_version": "0.3.0",
+      "grader_version": "0.4.0",
       "label": null,
       "sync": "local",
       "sync_attempts": 0,

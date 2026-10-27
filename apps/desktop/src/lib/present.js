@@ -14,7 +14,7 @@ export const VERDICTS = {
 };
 
 export const AXES = {
-  function: { label: 'Drives', blurb: 'Storage errors and wear' },
+  function: { label: 'Drives', blurb: 'Storage errors and wear, and devices without working drivers' },
   battery: { label: 'Battery', blurb: 'Capacity and wear' },
   encumbrance: { label: 'Ownership', blurb: 'Locks, management and ex-company markers' },
 };

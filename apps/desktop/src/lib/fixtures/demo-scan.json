@@ -325,5 +325,32 @@
       "component": "storage/PhysicalDrive1",
       "message": "drive behind USB bridge: health data unverified"
     }
-  ]
+  ],
+  "platform": {
+    "uefi": {
+      "value": true,
+      "provenance": "measured",
+      "source": "kernel32:GetFirmwareType"
+    },
+    "secure_boot": {
+      "value": false,
+      "provenance": "measured",
+      "source": "registry:HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State"
+    },
+    "tpm_version": {
+      "value": "2.0",
+      "provenance": "measured",
+      "source": "tbs:Tbsi_GetDeviceInfo"
+    }
+  },
+  "devices": {
+    "checked": 146,
+    "problems": [
+      {
+        "name": "Synaptics FP Sensors (WBF) (PID=0097)",
+        "problem": "No driver installed",
+        "code": 28
+      }
+    ]
+  }
 }

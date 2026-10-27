@@ -20,7 +20,7 @@ use crate::handson::{self, HandsOn, Outcome, TestKind};
 use crate::model::*;
 
 /// Bump whenever a weight, threshold or tier rule changes.
-pub const ASSESS_VERSION: &str = "1.2.0";
+pub const ASSESS_VERSION: &str = "1.3.0";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Assessment {
@@ -35,6 +35,8 @@ pub struct Assessment {
     pub tips: Vec<String>,
     /// What the hands-on tests found, when any were run.
     pub hands_on: Option<HandsOnSummary>,
+    /// Whether the computer can run Windows 11.
+    pub windows11: crate::windows11::Windows11,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1497,6 +1499,7 @@ fn assess_scan(scan: &Scan, grade: &Grade) -> Assessment {
         specs,
         uses,
         hands_on: None,
+        windows11: crate::windows11::check(scan),
     }
 }
 

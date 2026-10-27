@@ -16,11 +16,12 @@ use std::ptr::{null, null_mut};
 use std::time::Instant;
 
 use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
-    SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo, SetupDiEnumDeviceInterfaces,
-    SetupDiGetClassDevsW, SetupDiGetDeviceInstanceIdW, SetupDiGetDeviceInterfaceDetailW,
-    SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDevRegKey, DICS_FLAG_GLOBAL,
-    DIGCF_DEVICEINTERFACE, DIGCF_PRESENT, DIREG_DEV, DIREG_DRV, GUID_DEVCLASS_BATTERY,
-    GUID_DEVCLASS_DISPLAY, GUID_DEVCLASS_MONITOR, HDEVINFO, SPDRP_DEVICEDESC,
+    CM_Get_DevNode_Status, SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo,
+    SetupDiEnumDeviceInterfaces, SetupDiGetClassDevsW, SetupDiGetDeviceInstanceIdW,
+    SetupDiGetDeviceInterfaceDetailW, SetupDiGetDeviceRegistryPropertyW, SetupDiOpenDevRegKey,
+    CR_SUCCESS, DICS_FLAG_GLOBAL, DIGCF_ALLCLASSES, DIGCF_DEVICEINTERFACE, DIGCF_PRESENT,
+    DIREG_DEV, DIREG_DRV, DN_HAS_PROBLEM, GUID_DEVCLASS_BATTERY, GUID_DEVCLASS_DISPLAY,
+    GUID_DEVCLASS_MONITOR, HDEVINFO, SPDRP_DEVICEDESC, SPDRP_FRIENDLYNAME,
     SP_DEVICE_INTERFACE_DATA, SP_DEVICE_INTERFACE_DETAIL_DATA_W, SP_DEVINFO_DATA,
 };
 use windows_sys::Win32::Foundation::{
@@ -42,10 +43,14 @@ use windows_sys::Win32::System::Registry::{
     KEY_READ, KEY_WOW64_64KEY, REG_BINARY, REG_DWORD, REG_EXPAND_SZ, REG_QWORD, REG_SZ,
 };
 use windows_sys::Win32::System::SystemInformation::{
-    EnumSystemFirmwareTables, GetLogicalProcessorInformationEx, GetSystemFirmwareTable,
-    GlobalMemoryStatusEx, RelationProcessorCore, MEMORYSTATUSEX,
+    EnumSystemFirmwareTables, FirmwareTypeBios, FirmwareTypeUefi, GetFirmwareType,
+    GetLogicalProcessorInformationEx, GetSystemFirmwareTable, GlobalMemoryStatusEx,
+    RelationProcessorCore, FIRMWARE_TYPE, MEMORYSTATUSEX,
 };
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+use windows_sys::Win32::System::TpmBaseServices::{
+    Tbsi_GetDeviceInfo, TBS_SUCCESS, TPM_DEVICE_INFO, TPM_VERSION_12, TPM_VERSION_20,
+};
 use windows_sys::Win32::System::IO::DeviceIoControl;
 
 use super::signals::{self, Enrolment, EntraJoin};
@@ -88,6 +93,8 @@ impl WindowsBackend {
             gpus: gpus(&mut notes),
             network: network(&mut notes),
             encumbrance: encumbrance(&identity, &mut notes),
+            platform: platform(),
+            devices: devices(&mut notes),
             identity,
             ..Scan::default()
         };
@@ -750,6 +757,98 @@ fn instance_id(set: &DevInfo, info: &SP_DEVINFO_DATA) -> Option<String> {
         SetupDiGetDeviceInstanceIdW(set.0, info, buf.as_mut_ptr(), buf.len() as u32, &mut need)
     };
     (ok != 0).then(|| from_wide(&buf))
+}
+
+// ---------------------------------------------------------------- platform
+
+fn platform() -> Platform {
+    let mut kind: FIRMWARE_TYPE = 0;
+    // SAFETY: kind is a valid out pointer.
+    let ok = unsafe { GetFirmwareType(&mut kind) } != 0;
+    let uefi = Field::measured(
+        ok.then_some(kind == FirmwareTypeUefi)
+            .filter(|_| kind == FirmwareTypeUefi || kind == FirmwareTypeBios),
+        "kernel32:GetFirmwareType",
+    );
+    let sb_path = r"SYSTEM\CurrentControlSet\Control\SecureBoot\State";
+    let secure_boot = match open_key(sb_path) {
+        Ok(Some(k)) => Field::measured(
+            k.string("UEFISecureBootEnabled").map(|v| v == "1"),
+            reg_source(sb_path),
+        ),
+        // The key only exists on UEFI systems: without it, Secure Boot is off.
+        Ok(None) => Field::measured(Some(false), reg_source(sb_path)),
+        Err(e) => Field::missing(Provenance::Measured, reg_source(sb_path), e),
+    };
+    // SAFETY: TPM_DEVICE_INFO is plain data and its size is passed in.
+    let mut info: TPM_DEVICE_INFO = unsafe { zeroed() };
+    let rc = unsafe {
+        Tbsi_GetDeviceInfo(
+            size_of::<TPM_DEVICE_INFO>() as u32,
+            &mut info as *mut TPM_DEVICE_INFO as *mut c_void,
+        )
+    };
+    let tpm_src = "tbs:Tbsi_GetDeviceInfo";
+    let tpm_version = if rc == TBS_SUCCESS {
+        let v = match info.tpmVersion {
+            TPM_VERSION_20 => "2.0",
+            TPM_VERSION_12 => "1.2",
+            _ => "unknown",
+        };
+        Field::measured(Some(v.to_string()), tpm_src)
+    } else if rc == 0x8028_400F {
+        // TBS_E_TPM_NOT_FOUND: none present, or turned off in the firmware.
+        Field::measured(Some("none".to_string()), tpm_src)
+    } else {
+        Field::missing(Provenance::Measured, tpm_src, format!("error {rc:#x}"))
+    };
+    Platform {
+        uefi,
+        secure_boot,
+        tpm_version,
+    }
+}
+
+fn devices(notes: &mut Vec<ProbeNote>) -> Option<DeviceCheck> {
+    // SAFETY: a null class with DIGCF_ALLCLASSES lists every device.
+    let set = unsafe {
+        SetupDiGetClassDevsW(null(), null(), null_mut(), DIGCF_ALLCLASSES | DIGCF_PRESENT)
+    };
+    if set == INVALID_HANDLE_VALUE as HDEVINFO {
+        notes.push(note("devices", "the device list could not be read"));
+        return None;
+    }
+    let set = DevInfo(set);
+    let mut check = DeviceCheck::default();
+    for i in 0.. {
+        // SAFETY: SP_DEVINFO_DATA is plain data; cbSize is set before use.
+        let mut info: SP_DEVINFO_DATA = unsafe { zeroed() };
+        info.cbSize = size_of::<SP_DEVINFO_DATA>() as u32;
+        // SAFETY: set is a live device information set.
+        if unsafe { SetupDiEnumDeviceInfo(set.0, i, &mut info) } == 0 {
+            break;
+        }
+        check.checked += 1;
+        let (mut status, mut problem) = (0u32, 0u32);
+        // SAFETY: both out pointers are valid; DevInst comes from the set.
+        let rc = unsafe { CM_Get_DevNode_Status(&mut status, &mut problem, info.DevInst, 0) };
+        if rc != CR_SUCCESS || status & DN_HAS_PROBLEM == 0 {
+            continue;
+        }
+        let Some(text) = super::windows_device_problem(problem) else {
+            continue;
+        };
+        let name = device_property(&set, &info, SPDRP_FRIENDLYNAME)
+            .or_else(|| device_property(&set, &info, SPDRP_DEVICEDESC))
+            .and_then(|d| winioctl::device_description(&d).or(Some(d)))
+            .unwrap_or_else(|| "Unknown device".into());
+        check.problems.push(DeviceProblem {
+            name,
+            problem: text.into(),
+            code: Some(problem),
+        });
+    }
+    Some(check)
 }
 
 // ----------------------------------------------------------------- network

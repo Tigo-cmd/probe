@@ -282,6 +282,7 @@ export const PHYSICAL_ITEMS = [
   { id: 'liquid', title: 'Signs of liquid', how: 'Sticky keys, residue around the keyboard, or green or white corrosion near the ports.' },
   { id: 'screws', title: 'Screws and seals', how: 'Missing or stripped screws, or broken warranty seals, mean it has been opened.' },
   { id: 'smell', title: 'Smell and heat', how: 'A burnt smell, or the case getting hot while idle, needs explaining.' },
+  { id: 'firmware_lock', title: 'Firmware password', how: 'Restart and press the setup key as it starts (F2, F1, F10, Del or Esc, shown on screen). If it asks for a password before the settings open, the seller must remove it: a locked firmware can stop you reinstalling or changing anything.' },
 ];
 
 /** `answers` maps item id to 'fine' | 'problem' | 'skip'; `notes` to text. */

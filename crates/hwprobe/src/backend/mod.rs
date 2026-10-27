@@ -176,6 +176,30 @@ fn unsupported() -> Scan {
     }
 }
 
+/// Plain words for a Windows Device Manager problem code. `None` for codes
+/// that are not a fault the buyer should hear about (a device the owner
+/// turned off on purpose is still listed, as it may be the camera or Wi-Fi).
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn windows_device_problem(code: u32) -> Option<&'static str> {
+    Some(match code {
+        1 | 18 | 28 => "No driver installed",
+        3 | 10 => "The device cannot start",
+        12 => "Not enough free resources for the device",
+        14 | 21 => "Needs a restart to work",
+        19 => "Its settings in the registry are damaged",
+        22 => "Turned off in Device Manager",
+        24 => "Not present, or not working properly",
+        31 => "Not working: Windows cannot load its driver",
+        32 => "Its driver has been disabled",
+        37 | 39 | 52 => "Its driver failed to load",
+        38 | 47 => "Waiting to be safely removed or reinstalled",
+        43 => "Stopped after reporting a problem",
+        45 => "Not connected now",
+        48 => "Blocked because its driver has known problems",
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::is_placeholder;

@@ -126,6 +126,14 @@ pub struct Scan {
     pub gpus: Vec<Gpu>,
     pub network: Vec<NetworkInterface>,
     pub encumbrance: Vec<EncumbranceSignal>,
+    /// Firmware security facts (UEFI, Secure Boot, TPM, firmware password).
+    /// Added after schema 1: older scans load with nothing read.
+    #[serde(default, skip_serializing_if = "Platform::is_unread")]
+    pub platform: Platform,
+    /// Hardware devices the operating system reports a problem with. `None`
+    /// when the check did not run (older scans, or unsupported here).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub devices: Option<DeviceCheck>,
     /// Problems encountered while probing; a failed read is recorded, never hidden.
     pub probe_notes: Vec<ProbeNote>,
 }
@@ -385,6 +393,44 @@ pub struct EncumbranceSignal {
     pub provenance: Provenance,
     pub source: String,
     pub detail: String,
+}
+
+/// What Windows 11 and a buyer care about in the firmware.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Platform {
+    /// Booted in UEFI mode rather than legacy BIOS.
+    pub uefi: Field<bool>,
+    pub secure_boot: Field<bool>,
+    /// TPM specification version: "2.0", "1.2", or "none" when the system
+    /// reports no TPM (absent, or turned off in the firmware settings).
+    pub tpm_version: Field<String>,
+}
+
+impl Platform {
+    pub fn is_unread(&self) -> bool {
+        self.uefi.value.is_none()
+            && self.secure_boot.value.is_none()
+            && self.tpm_version.value.is_none()
+            && self.uefi.source.is_empty()
+    }
+}
+
+/// The result of asking the operating system which devices have problems.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct DeviceCheck {
+    /// Devices looked at.
+    pub checked: u32,
+    pub problems: Vec<DeviceProblem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeviceProblem {
+    pub name: String,
+    /// Plain description, e.g. "No driver installed".
+    pub problem: String,
+    /// The operating system's own problem code, when it has one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

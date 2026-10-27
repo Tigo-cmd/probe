@@ -72,6 +72,8 @@ impl LinuxBackend {
             gpus: self.gpus(&mut notes),
             network: self.network(),
             encumbrance: self.encumbrance(&identity, &mut notes),
+            platform: self.platform(),
+            devices: self.devices(),
             identity,
             ..Scan::default()
         };
@@ -397,6 +399,115 @@ impl LinuxBackend {
     /// Graphics adapters: PCI display-class devices behind the DRM cards.
     /// Names come from the NVIDIA driver when it is loaded, else from the
     /// system's pci.ids table, else only the vendor is named.
+    fn platform(&self) -> Platform {
+        let efi = self.sys.join("firmware/efi");
+        let uefi = efi.is_dir();
+        // The SecureBoot variable: 4 bytes of attributes, then 1 when enabled.
+        let sb = efi.join("efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-e98c0331f4b5");
+        let secure_boot = if !uefi {
+            Field::measured(Some(false), source(&efi))
+        } else {
+            match fs::read(&sb) {
+                Ok(b) if b.len() >= 5 => Field::measured(Some(b[4] == 1), source(&sb)),
+                Ok(_) => Field::missing(
+                    Provenance::Measured,
+                    source(&sb),
+                    "unexpected variable size",
+                ),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    Field::measured(Some(false), source(&sb))
+                }
+                Err(e) => Field::missing(Provenance::Measured, source(&sb), e.to_string()),
+            }
+        };
+        let tpm_dir = self.sys.join("class/tpm");
+        let tpm0 = tpm_dir.join("tpm0");
+        let tpm_version = match read_trimmed(&tpm0.join("tpm_version_major")) {
+            Some(m) if m == "2" => Field::measured(Some("2.0".into()), source(&tpm0)),
+            Some(m) if m == "1" => Field::measured(Some("1.2".into()), source(&tpm0)),
+            Some(m) => Field::measured(Some(m), source(&tpm0)),
+            // Older kernels lack the version file but still list the device.
+            None if tpm0.exists() => Field::missing(
+                Provenance::Measured,
+                source(&tpm0),
+                "a TPM is present but this kernel does not report its version",
+            ),
+            None => Field::measured(Some("none".into()), source(&tpm_dir)),
+        };
+        Platform {
+            uefi: Field::measured(Some(uefi), source(&efi)),
+            secure_boot,
+            tpm_version,
+        }
+    }
+
+    /// Dell, Lenovo and HP publish firmware password state through the
+    /// kernel's firmware-attributes class. `None` when nothing is published.
+    fn firmware_password(&self) -> Option<bool> {
+        let mut found = false;
+        let mut set = false;
+        for driver in list_dir(&self.sys.join("class/firmware-attributes")) {
+            for auth in list_dir(&driver.join("authentication")) {
+                if let Some(v) = read_trimmed(&auth.join("is_enabled")) {
+                    found = true;
+                    set |= v == "1";
+                }
+            }
+        }
+        found.then_some(set)
+    }
+
+    /// PCI devices of the kinds a buyer relies on that have no driver bound.
+    fn devices(&self) -> Option<DeviceCheck> {
+        let bus = self.sys.join("bus/pci/devices");
+        if !bus.is_dir() {
+            return None;
+        }
+        let ids = ["hwdata/pci.ids", "misc/pci.ids", "pci.ids"]
+            .iter()
+            .find_map(|p| read(&self.share.join(p)));
+        let mut check = DeviceCheck::default();
+        for dev in list_dir(&bus) {
+            let hex = |file: &str| {
+                read_trimmed(&dev.join(file))
+                    .and_then(|v| u32::from_str_radix(v.trim_start_matches("0x"), 16).ok())
+            };
+            let Some(class) = hex("class") else { continue };
+            check.checked += 1;
+            let kind = match class >> 16 {
+                0x01 => "storage controller",
+                0x02 => "network adapter",
+                0x03 => "graphics",
+                0x04 => "audio or video device",
+                0x0d => "wireless device",
+                0x0c if class >> 8 == 0x0c03 => "USB controller",
+                _ => continue,
+            };
+            if dev.join("driver").exists() {
+                continue;
+            }
+            let (vendor, device) = (
+                hex("vendor").unwrap_or(0) as u16,
+                hex("device").unwrap_or(0) as u16,
+            );
+            let name = ids
+                .as_deref()
+                .map(|t| parse::pciids::lookup(t, vendor, device))
+                .and_then(|(v, d)| match (v, d) {
+                    (Some(v), Some(d)) => Some(format!("{v} {d}")),
+                    (_, Some(d)) => Some(d),
+                    _ => None,
+                })
+                .unwrap_or_else(|| format!("PCI {kind} {vendor:04x}:{device:04x}"));
+            check.problems.push(DeviceProblem {
+                name,
+                problem: format!("No driver in use for this {kind}"),
+                code: None,
+            });
+        }
+        Some(check)
+    }
+
     fn gpus(&self, notes: &mut Vec<ProbeNote>) -> Vec<Gpu> {
         let ids = ["hwdata/pci.ids", "misc/pci.ids", "pci.ids"]
             .iter()
@@ -516,6 +627,12 @@ impl LinuxBackend {
             Err(e) => Err(format!("{}: {e}", path.display())),
         };
         out.extend(super::wpbt_signal(read, &source(&path), notes));
+        if let Some(set) = self.firmware_password() {
+            out.push(signals::firmware_password(
+                set,
+                &source(&self.sys.join("class/firmware-attributes")),
+            ));
+        }
         out
     }
 

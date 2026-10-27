@@ -10,6 +10,7 @@
   import ThemeSwitch from './ThemeSwitch.svelte';
   import { OUTCOMES, TESTS } from './handson.js';
   import VerdictBadge from './VerdictBadge.svelte';
+  import Windows11Card from './Windows11Card.svelte';
   import {
     AXES,
     axisLabel,
@@ -329,6 +330,8 @@
   <UseFit uses={assessment.uses} bind:selected={selectedUse} />
 
   <SpecTiles specs={assessment.specs} {scan} />
+
+  {#if assessment.windows11}<Windows11Card windows11={assessment.windows11} />{/if}
 
   {#if team?.configured}
     <section class="card block seen" aria-labelledby="seen-title">

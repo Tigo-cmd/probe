@@ -490,6 +490,7 @@ mod sys {
                 gpus,
                 network,
                 encumbrance,
+                platform: mac_platform(),
                 ..Scan::default()
             };
             scan.probe_notes = notes;
@@ -569,6 +570,17 @@ mod sys {
         ProbeNote {
             component: component.into(),
             message: message.into(),
+        }
+    }
+
+    /// Macs boot with Apple's own firmware, so UEFI, Secure Boot and TPM
+    /// (the Windows 11 requirements) do not apply.
+    fn mac_platform() -> Platform {
+        let na = |what: &str| format!("{what} does not apply to Macs");
+        Platform {
+            uefi: Field::missing(Provenance::NotAssessable, "macos", na("UEFI")),
+            secure_boot: Field::missing(Provenance::NotAssessable, "macos", na("UEFI Secure Boot")),
+            tpm_version: Field::missing(Provenance::NotAssessable, "macos", na("A TPM")),
         }
     }
 

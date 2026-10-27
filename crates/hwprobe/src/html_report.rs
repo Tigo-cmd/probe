@@ -12,6 +12,7 @@ use crate::grade::{Axis, Grade, Verdict};
 use crate::handson::{kind_label, HandsOn, Outcome};
 use crate::model::*;
 use crate::report::use_label;
+use crate::windows11::Readiness;
 
 /// The full page, including hands-on test results when any were run.
 pub fn render_html(scan: &Scan, grade: &Grade, hands_on: Option<&HandsOn>) -> String {
@@ -118,6 +119,53 @@ fn page(
         o.push_str("</div>");
     }
     o.push_str("</div></section>\n");
+
+    // -------------------------------------------------------- windows 11
+    let w = &a.windows11;
+    if w.readiness != Readiness::NotApplicable {
+        let (tone, label) = match w.readiness {
+            Readiness::Ready => ("green", "Ready"),
+            Readiness::Fixable => ("amber", "Fixable"),
+            Readiness::NotSupported => ("red", "Not supported"),
+            _ => ("grey", "Not known"),
+        };
+        write!(
+            o,
+            "<section><h2 class=\"section\">Windows 11</h2><div class=\"card list\">\
+             <div class=\"list-head\"><p>{}</p><span class=\"pill {tone}\">{label}</span></div>",
+            esc(&w.summary)
+        )?;
+        for r in &w.requirements {
+            let t = match r.met {
+                Some(true) => "green",
+                Some(false) => "red",
+                None => "grey",
+            };
+            write!(
+                o,
+                "<div class=\"row finding\"><span class=\"dot {t}\"></span><div><p><b>{}</b>: {} {}</p></div></div>",
+                esc(&r.label),
+                esc(&r.detail),
+                prov(r.provenance)
+            )?;
+        }
+        if !w.fixes.is_empty() {
+            let title = if w.readiness == Readiness::Fixable {
+                "How to fix it"
+            } else {
+                "Worth doing"
+            };
+            write!(
+                o,
+                "<div class=\"row\"><div><p><b>{title}</b></p><ul class=\"fixes\">"
+            )?;
+            for f in &w.fixes {
+                write!(o, "<li>{}</li>", esc(f))?;
+            }
+            o.push_str("</ul></div></div>");
+        }
+        o.push_str("</div></section>\n");
+    }
 
     // ------------------------------------------------------- next steps
     if !a.tips.is_empty() {
@@ -355,7 +403,11 @@ fn area_row(o: &mut String, a: &AreaScore) -> std::fmt::Result {
     write!(
         o,
         "<div class=\"area\"><div class=\"area-head\"><span>{}</span><b>{}</b></div>",
-        area_label(a.axis),
+        // The area score covers the drives only; devices show under findings.
+        match a.axis {
+            Axis::Function => "Drives",
+            other => area_label(other),
+        },
         a.score.map(|s| s.to_string()).unwrap_or_else(|| "–".into())
     )?;
     bar(o, a.score, tone)?;
@@ -444,7 +496,7 @@ fn os_label(os: &str) -> String {
 
 fn area_label(a: Axis) -> &'static str {
     match a {
-        Axis::Function => "Drives",
+        Axis::Function => "Drives and devices",
         Axis::Battery => "Battery",
         Axis::Encumbrance => "Ownership",
     }
@@ -627,6 +679,7 @@ section>.card+.card{margin-top:14px}
 .row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line)}
 .list>.row:first-child{border-top:0}
 .finding{justify-content:flex-start}.finding .dot{margin-top:8px}
+.fixes{margin-top:6px;padding-left:18px;font-size:14px;color:var(--muted)}
 .problems{margin-top:6px;padding-left:18px;color:var(--red);font-size:13px}
 .tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:6px;background:var(--grey-bg);color:var(--muted);vertical-align:1px;margin-left:4px}
 .tag.measured{background:var(--green-bg);color:var(--green)}

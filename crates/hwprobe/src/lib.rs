@@ -19,6 +19,7 @@ pub mod live;
 pub mod model;
 pub mod parse;
 pub mod report;
+pub mod windows11;
 
 pub use assess::{assess, assess_with, Assessment};
 pub use backend::{is_elevated, scan};

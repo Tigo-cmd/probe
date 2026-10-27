@@ -254,7 +254,7 @@ pub fn firmware_password(set: bool, source: &str) -> EncumbranceSignal {
         Provenance::Measured,
         source,
         if set {
-            "a firmware password is set: the Mac cannot boot other media or be reinstalled without it".into()
+            "a firmware password is set: the computer cannot start from other media, change its firmware settings or be reinstalled without it".into()
         } else {
             "no firmware password".into()
         },
