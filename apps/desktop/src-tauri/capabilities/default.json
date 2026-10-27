@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window: run scans, pick files to save or open scans, go full screen for the screen test, and match the window frame to the chosen theme.",
+  "description": "The main window: run scans, pick files to save or open scans, go full screen for the screen test, and match the window frame to the chosen theme, and check for, install and restart into updates.",
   "windows": [
     "main"
   ],
@@ -10,6 +10,8 @@
     "dialog:allow-open",
     "dialog:allow-save",
     "core:window:allow-set-fullscreen",
-    "core:window:allow-set-theme"
+    "core:window:allow-set-theme",
+    "updater:default",
+    "process:allow-restart"
   ]
 }

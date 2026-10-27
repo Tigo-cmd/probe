@@ -13,7 +13,7 @@ export const inTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in
 // below that reads them, so a shipped app can never display data that was
 // not read from a machine.
 export const demoMode =
-  import.meta.env.DEV && !inTauri && new URLSearchParams(window.location.search).has('demo');
+  import.meta.env.DEV && !inTauri && typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('demo');
 
 async function demo(name) {
   const fixtures = {

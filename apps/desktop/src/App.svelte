@@ -3,6 +3,7 @@
   import Scanning from './lib/Scanning.svelte';
   import Report from './lib/Report.svelte';
   import HandsOn from './lib/HandsOn.svelte';
+  import UpdateBanner from './lib/UpdateBanner.svelte';
   import {
     deleteStored,
     demoMode,
@@ -106,6 +107,8 @@
 {#if demoMode}
   <div class="demo">Design preview with sample data. Not a scan of this machine.</div>
 {/if}
+
+<UpdateBanner busy={view === 'scanning'} />
 
 {#if view === 'scanning'}
   <Scanning asking={privilege?.can_elevate ? privilege.method : ''} />

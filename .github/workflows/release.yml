@@ -4,6 +4,11 @@ name: Release
 # installers and publish them as a GitHub Release. Files get stable names so
 # the website can link to releases/latest/download/<name> and always serve
 # the newest version. Unsigned until code signing is set up.
+#
+# Auto-update: with the TAURI_SIGNING_PRIVATE_KEY secret set, the build also
+# signs update packages and publishes latest.json, which installed copies of
+# probe read to offer the new version. Without the secret, releases still
+# build; installed apps just are not told about them.
 
 on:
   push:
@@ -28,11 +33,20 @@ jobs:
             bundle_dir: apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle
           - os: ubuntu-latest
             name: linux
-            tauri_args: --bundles deb
+            tauri_args: --bundles deb,appimage
             bundle_dir: apps/desktop/src-tauri/target/release/bundle
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - name: Check the tag matches the app version
+        shell: bash
+        run: |
+          app=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$app" != "$tag" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match app version $app in tauri.conf.json. Installed apps compare these numbers to decide whether to update."
+            exit 1
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -48,9 +62,18 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev
       - name: Build the desktop app
         working-directory: apps/desktop
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           npm ci
-          npx tauri build ${{ matrix.tauri_args }}
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            npx tauri build ${{ matrix.tauri_args }} --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          else
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is not set, so this release has no auto-update files."
+            npx tauri build ${{ matrix.tauri_args }}
+          fi
       - name: Build the command-line tool and the team server
         run: cargo build --release -p hwprobe-cli -p probe-sync
       - name: Give the files stable names
@@ -61,15 +84,21 @@ jobs:
           case "${{ matrix.name }}" in
             windows)
               cp "$b"/nsis/*.exe out/probe-windows-x64-setup.exe
+              # The signed installer doubles as the update package.
+              for s in "$b"/nsis/*.exe.sig; do [ -f "$s" ] && cp "$s" out/probe-windows-x64-setup.exe.sig; done
               cp "$b"/msi/*.msi out/probe-windows-x64.msi
               cp target/release/hwprobe.exe out/hwprobe-windows-x64.exe
               cp target/release/probe-sync.exe out/probe-sync-windows-x64.exe ;;
             macos)
               cp "$b"/dmg/*.dmg out/probe-macos-universal.dmg
+              for f in "$b"/macos/*.app.tar.gz; do [ -f "$f" ] && cp "$f" out/probe-macos-universal.app.tar.gz; done
+              for s in "$b"/macos/*.app.tar.gz.sig; do [ -f "$s" ] && cp "$s" out/probe-macos-universal.app.tar.gz.sig; done
               tar -czf out/hwprobe-macos.tar.gz -C target/release hwprobe
               tar -czf out/probe-sync-macos.tar.gz -C target/release probe-sync ;;
             linux)
               cp "$b"/deb/*.deb out/probe-linux-amd64.deb
+              cp "$b"/appimage/*.AppImage out/probe-linux-amd64.AppImage
+              for s in "$b"/appimage/*.AppImage.sig; do [ -f "$s" ] && cp "$s" out/probe-linux-amd64.AppImage.sig; done
               tar -czf out/hwprobe-linux-amd64.tar.gz -C target/release hwprobe
               tar -czf out/probe-sync-linux-amd64.tar.gz -C target/release probe-sync ;;
           esac
@@ -88,6 +117,39 @@ jobs:
         with:
           path: out
           merge-multiple: true
+      - name: Describe the update for installed apps
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Use the notes written on the GitHub release, when it already exists.
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.txt 2>/dev/null || true
+          python3 - <<'PY'
+          import json, os, datetime
+          tag = os.environ["GITHUB_REF_NAME"]
+          base = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{tag}/"
+          files = {
+              "windows-x86_64": "probe-windows-x64-setup.exe",
+              "darwin-aarch64": "probe-macos-universal.app.tar.gz",
+              "darwin-x86_64": "probe-macos-universal.app.tar.gz",
+              "linux-x86_64": "probe-linux-amd64.AppImage",
+          }
+          platforms = {}
+          for platform, name in files.items():
+              sig = os.path.join("out", name + ".sig")
+              if os.path.exists(sig):
+                  platforms[platform] = {"signature": open(sig).read().strip(), "url": base + name}
+          if not platforms:
+              print("No update signatures: skipping latest.json")
+              raise SystemExit(0)
+          manifest = {
+              "version": tag.lstrip("v"),
+              "notes": (open("notes.txt").read().strip() if os.path.exists("notes.txt") else "") or f"probe {tag.lstrip('v')}",
+              "pub_date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "platforms": platforms,
+          }
+          json.dump(manifest, open("out/latest.json", "w"), indent=2)
+          print(json.dumps(manifest, indent=2))
+          PY
       - name: Checksums
         run: cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2

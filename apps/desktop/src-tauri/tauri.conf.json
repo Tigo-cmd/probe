@@ -37,5 +37,16 @@
     "macOS": {
       "entitlements": "Entitlements.plist"
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI2N0M1QkQ5NkYzNUJCQ0IKUldUTHV6VnYyVnQ4dHNXV2VLcjNaUExxc1NYT3Y3N0NsMkpaQlFNUGhwVVpNZVNxU3BYS2xOUUwK",
+      "endpoints": [
+        "https://github.com/Tigo-cmd/probe/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
