@@ -724,7 +724,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "elevate"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "windows-sys 0.59.0",
 ]
@@ -1332,7 +1332,7 @@ checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
 
 [[package]]
 name = "hwprobe"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "libc",
  "serde",
@@ -2430,7 +2430,7 @@ checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 
 [[package]]
 name = "probe-desktop"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "elevate",
  "hwprobe",
@@ -2813,7 +2813,7 @@ dependencies = [
 
 [[package]]
 name = "scanstore"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "hwprobe",
  "rusqlite",
@@ -3322,7 +3322,7 @@ dependencies = [
 
 [[package]]
 name = "syncclient"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "hwprobe",
  "scanstore",

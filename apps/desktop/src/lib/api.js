@@ -112,8 +112,11 @@ export async function saveScanAs(scan) {
 export async function saveTextReportAs(scan, id = null) {
   requireTauri();
   const path = await save({
-    defaultPath: defaultFileName(scan, 'txt'),
-    filters: [{ name: 'Text report', extensions: ['txt'] }],
+    defaultPath: defaultFileName(scan, 'html'),
+    filters: [
+      { name: 'Report (web page)', extensions: ['html'] },
+      { name: 'Plain text report', extensions: ['txt'] },
+    ],
   });
   if (!path) return null;
   await invoke('save_text_report', { path, scan, id });

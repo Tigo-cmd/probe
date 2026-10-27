@@ -3,13 +3,15 @@
 use std::fs;
 use std::process::ExitCode;
 
-use hwprobe::{grade, report, Fingerprint, Scan, Verdict};
+use hwprobe::{grade, html_report, report, Fingerprint, Scan, Verdict};
 
 const USAGE: &str = "\
 usage:
   hwprobe [report]            scan this machine, grade it, print the report
+  hwprobe report --html FILE  scan, grade and save the report as a web page
   hwprobe scan [-o FILE]      scan this machine and write the raw scan as JSON
   hwprobe grade FILE [--json] grade a saved scan offline
+  hwprobe grade FILE --html OUT  grade a saved scan, save the report as a web page
   hwprobe diff OLD NEW        compare the device fingerprints of two scans
 
 exit status: 0 green, 1 amber, 2 red, 3 not graded, 64 usage error";
@@ -24,6 +26,25 @@ fn main() -> ExitCode {
             print!("{}", report::render(&scan, &g));
             Ok(exit_for(g.headline))
         }
+        ["report", "--html", path] => {
+            let scan = hwprobe::scan();
+            let g = grade::grade(&scan);
+            fs::write(path, html_report::render_html(&scan, &g, None))
+                .map_err(|e| format!("{path}: {e}"))
+                .map(|_| {
+                    println!("report saved to {path}");
+                    exit_for(g.headline)
+                })
+        }
+        ["grade", path, "--html", out] => load(path).and_then(|scan| {
+            let g = grade::grade(&scan);
+            fs::write(out, html_report::render_html(&scan, &g, None))
+                .map_err(|e| format!("{out}: {e}"))
+                .map(|_| {
+                    println!("report saved to {out}");
+                    exit_for(g.headline)
+                })
+        }),
         ["scan"] => print_json(&hwprobe::scan()),
         ["scan", "-o", path] => write_json(path, &hwprobe::scan()),
         ["grade", path] => load(path).map(|scan| {

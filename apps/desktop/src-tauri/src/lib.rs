@@ -303,8 +303,13 @@ fn save_text_report(
             .ok()
             .flatten()
     });
-    fs::write(&path, report::render_with(&scan, &g, hands_on.as_ref()))
-        .map_err(|e| format!("{path}: {e}"))
+    // The save dialog offers both formats; the chosen extension decides.
+    let text = if path.to_lowercase().ends_with(".txt") {
+        report::render_with(&scan, &g, hands_on.as_ref())
+    } else {
+        hwprobe::html_report::render_html(&scan, &g, hands_on.as_ref())
+    };
+    fs::write(&path, text).map_err(|e| format!("{path}: {e}"))
 }
 
 /// Record one finished hands-on test against a stored scan and return the

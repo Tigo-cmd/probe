@@ -88,7 +88,7 @@
     }
   }
   const saveScan = () => act(() => saveScanAs(scan), (p) => `Scan saved to ${p}`);
-  const saveText = () => act(() => saveTextReportAs(scan, record?.id ?? null), (p) => `Text report saved to ${p}`);
+  const saveText = () => act(() => saveTextReportAs(scan, record?.id ?? null), (p) => `Report saved to ${p}`);
   const handsOn = $derived(Object.fromEntries((opened.hands_on?.tests ?? []).map((t) => [t.kind, t])));
   const compare = () =>
     act(
@@ -174,7 +174,7 @@
     <span class="origin faint" title={origin}>{origin}</span>
     <div class="spacer"></div>
     <button onclick={compare}><Icon name="compare" size={16} /> Compare…</button>
-    <button onclick={saveText}><Icon name="doc" size={16} /> Text report…</button>
+    <button onclick={saveText}><Icon name="doc" size={16} /> Save report…</button>
     <button class="primary" onclick={saveScan}><Icon name="save" size={16} /> Save scan…</button>
     <ThemeSwitch />
   </div>
