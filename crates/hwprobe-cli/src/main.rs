@@ -12,6 +12,7 @@ usage:
   hwprobe scan [-o FILE]      scan this machine and write the raw scan as JSON
   hwprobe grade FILE [--json] grade a saved scan offline
   hwprobe grade FILE --html OUT  grade a saved scan, save the report as a web page
+  hwprobe grade FILE --seller OUT  the same with a QR code buyers can scan, and print its link
   hwprobe diff OLD NEW        compare the device fingerprints of two scans
 
 exit status: 0 green, 1 amber, 2 red, 3 not graded, 64 usage error";
@@ -44,6 +45,18 @@ fn main() -> ExitCode {
                     println!("report saved to {out}");
                     exit_for(g.headline)
                 })
+        }),
+        ["grade", path, "--seller", out] => load(path).and_then(|scan| {
+            let g = grade::grade(&scan);
+            fs::write(out, html_report::render_seller_html(&scan, &g, None))
+                .map_err(|e| format!("{out}: {e}"))?;
+            let a = hwprobe::assess::assess(&scan, &g);
+            println!("report saved to {out}");
+            println!(
+                "{}",
+                hwprobe::seller::Summary::of(&scan, &g, &a, None).link()
+            );
+            Ok(exit_for(g.headline))
         }),
         ["scan"] => print_json(&hwprobe::scan()),
         ["scan", "-o", path] => write_json(path, &hwprobe::scan()),

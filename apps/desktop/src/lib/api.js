@@ -123,6 +123,33 @@ export async function saveTextReportAs(scan, id = null) {
   return path;
 }
 
+/** Save the seller's report (with QR code) and open it in the browser. */
+export async function saveSellerReportAs(scan, id = null) {
+  requireTauri();
+  const path = await save({
+    defaultPath: defaultFileName(scan, 'html').replace(/\.html$/, '-seller.html'),
+    filters: [{ name: "Seller's report (web page)", extensions: ['html'] }],
+  });
+  if (!path) return null;
+  await invoke('save_seller_report', { path, scan, id });
+  return path;
+}
+
+/** Compare a seller's report link with this scan. */
+export async function checkSellerLink(link, scan) {
+  requireTauri();
+  return invoke('check_seller_link', { link, scan });
+}
+
+/** Open an https page in the default browser. */
+export async function openLink(url) {
+  if (!inTauri) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  return invoke('open_link', { url });
+}
+
 /** Compare this scan's identifiers with a saved scan file. */
 export async function compareWithSaved(scan) {
   requireTauri();

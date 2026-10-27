@@ -27,6 +27,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+tauri-plugin-opener = "2"
 
 # Camera and microphone for the hands-on test: WebKitGTK keeps media
 # capture off unless the app turns it on and answers the permission request.

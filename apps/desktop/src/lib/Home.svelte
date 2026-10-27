@@ -16,6 +16,7 @@
     team = null,
     onteamchange = () => {},
     onsynced = () => {},
+    onwipeguide = null,
   } = $props();
   // A full scan is offered when the app already has the rights or can ask.
   const full = $derived(!privilege || privilege.elevated || privilege.can_elevate);
@@ -92,6 +93,20 @@
       </p>
     </div>
   </section>
+
+  {#if onwipeguide}
+    <section class="card selling">
+      <span class="badge green"><Icon name="checklist" size={20} /></span>
+      <div>
+        <h2>Selling a computer?</h2>
+        <p class="muted">
+          Scan it, then make a seller's report with a QR code buyers can check on their phone. A step-by-step guide shows
+          how to wipe it safely before you hand it over.
+        </p>
+      </div>
+      <button onclick={onwipeguide}>Wipe guide</button>
+    </section>
+  {/if}
 
   {#if history}
     <History {history} onopen={onopenstored} ondelete={ondeletestored} />
@@ -203,6 +218,28 @@
   }
   .badge.orange {
     background: var(--amber-fill);
+  }
+  .selling {
+    padding: 20px 22px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .selling .badge {
+    flex: none;
+    margin: 0;
+  }
+  .selling div {
+    flex: 1;
+    display: grid;
+    gap: 4px;
+  }
+  .selling h2 {
+    font-size: 17px;
+    font-weight: 650;
+  }
+  .selling p {
+    font-size: 14px;
   }
   .fact h2 {
     font-size: 17px;

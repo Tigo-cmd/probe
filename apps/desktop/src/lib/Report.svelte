@@ -11,6 +11,7 @@
   import { OUTCOMES, TESTS } from './handson.js';
   import VerdictBadge from './VerdictBadge.svelte';
   import Windows11Card from './Windows11Card.svelte';
+  import SellerCard from './SellerCard.svelte';
   import {
     AXES,
     axisLabel,
@@ -42,7 +43,7 @@
   } from './api.js';
   import { matchedOn, SYNC_STATES } from './present.js';
 
-  let { opened, origin, onback, onrescan = null, team = null, onhandson = null } = $props();
+  let { opened, origin, onback, onrescan = null, team = null, onhandson = null, onwipeguide = null } = $props();
   const scan = $derived(opened.scan);
   const grade = $derived(opened.grade);
   const assessment = $derived(opened.assessment);
@@ -298,6 +299,8 @@
       </ol>
     </section>
   {/if}
+
+  <SellerCard {scan} recordId={record?.id ?? null} {onwipeguide} />
 
   <section class="card handson" aria-labelledby="handson-title">
     <div class="block-head">

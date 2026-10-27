@@ -17,7 +17,15 @@ use crate::windows11::Readiness;
 /// The full page, including hands-on test results when any were run.
 pub fn render_html(scan: &Scan, grade: &Grade, hands_on: Option<&HandsOn>) -> String {
     let mut o = String::with_capacity(32 * 1024);
-    let _ = page(&mut o, scan, grade, hands_on);
+    let _ = page(&mut o, scan, grade, hands_on, false);
+    o
+}
+
+/// The report a seller shares: the same page with a QR code and link at the
+/// top that open the summary on a buyer's phone.
+pub fn render_seller_html(scan: &Scan, grade: &Grade, hands_on: Option<&HandsOn>) -> String {
+    let mut o = String::with_capacity(48 * 1024);
+    let _ = page(&mut o, scan, grade, hands_on, true);
     o
 }
 
@@ -26,9 +34,18 @@ fn page(
     scan: &Scan,
     grade: &Grade,
     hands_on: Option<&HandsOn>,
+    seller: bool,
 ) -> std::fmt::Result {
     let a = assess::assess_with(scan, grade, hands_on);
     let name = machine_name(&scan.identity);
+    // A seller's report is shared publicly: show serials only in part.
+    let hide = |f: &Field<String>| {
+        if seller {
+            f.map(|v| crate::seller::mask(v))
+        } else {
+            f.clone()
+        }
+    };
     let date = date_of(scan.started_at);
 
     write!(
@@ -43,13 +60,35 @@ fn page(
     // ------------------------------------------------------------ header
     writeln!(
         o,
-        "<header class=\"top\">{MARK}<div><p class=\"eyebrow\">Condition report</p>\
+        "<header class=\"top\">{MARK}<div><p class=\"eyebrow\">{}</p>\
          <h1>{}</h1><p class=\"muted\">Scanned {} · {} · probe {}</p></div></header>",
+        if seller {
+            "Seller's condition report"
+        } else {
+            "Condition report"
+        },
         esc(&name),
         esc(&date),
         esc(&os_label(&scan.os)),
         esc(&scan.tool_version)
     )?;
+    if seller {
+        let summary = crate::seller::Summary::of(scan, grade, &a, hands_on);
+        let link = summary.link();
+        write!(
+            o,
+            "<section class=\"card seller\"><div class=\"qr\">{}</div><div>\
+             <h2>Check this report on your phone</h2>\
+             <p class=\"muted\">Scan the code to see this summary. Then run probe on the computer \
+             yourself: it compares the computer with this report in about a minute.</p>\
+             <p class=\"small\"><a href=\"{}\">Open the summary</a> · \
+             <a href=\"https://probe-pc.github.io\">Get probe free</a></p>\
+             <p class=\"faint small screen-only\">To make a PDF, print this page (Ctrl+P, or ⌘P on a Mac) \
+             and choose Save as PDF.</p></div></section>",
+            summary.qr_svg(240),
+            esc(&link)
+        )?;
+    }
     if !scan.elevated {
         o.push_str(
             "<p class=\"notice\">This scan ran without administrator rights, so drive health, \
@@ -247,8 +286,8 @@ fn page(
         &[
             row("Maker", &id.vendor),
             row("Model", &id.model),
-            row("Serial number", &id.serial),
-            row("Board serial", &id.board_serial),
+            row("Serial number", &hide(&id.serial)),
+            row("Board serial", &hide(&id.board_serial)),
             row("BIOS version", &id.bios_version),
             row("Processor", &scan.cpu.brand),
             row("Cores", &scan.cpu.physical_cores),
@@ -265,7 +304,7 @@ fn page(
             &format!("Drive {} ({:?})", d.name, d.transport),
             &[
                 row("Model", &d.model),
-                row("Serial number", &d.serial),
+                row("Serial number", &hide(&d.serial)),
                 row("Firmware", &d.firmware),
                 row("Capacity", &cap),
             ],
@@ -688,6 +727,11 @@ dl div{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:8px 0;borde
 dt{color:var(--muted)}dd{word-break:break-word}
 .callout ul{margin-top:10px;padding-left:18px;display:grid;gap:6px;font-size:14px;color:var(--muted)}
 .callout.warn{background:var(--amber-bg);box-shadow:none}.callout.warn h3{color:var(--amber)}
+.seller{display:grid;grid-template-columns:240px 1fr;gap:24px;align-items:center}
+.seller h2{font-size:20px;margin-bottom:6px}.seller p+p{margin-top:8px}
+.qr svg{width:240px;height:240px;display:block;border-radius:12px;background:#fff}
+@media (max-width:640px){.seller{grid-template-columns:1fr;justify-items:center;text-align:center}}
+@media print{.screen-only{display:none}}
 .notes summary{cursor:pointer;font-weight:600}.notes ul{margin-top:10px;padding-left:18px;font-size:13px;color:var(--muted);display:grid;gap:4px}
 footer{font-size:12px;color:var(--faint);display:grid;gap:6px;border-top:1px solid var(--line);padding-top:18px}
 footer a{color:var(--blue)}
@@ -756,6 +800,23 @@ mod tests {
         let html = render_html(&scan, &crate::grade::grade(&scan), Some(&hands_on));
         assert!(html.contains("Hands-on tests"));
         assert!(html.contains("Key K did not register"));
+    }
+
+    #[test]
+    fn seller_page_carries_a_qr_code_and_link() {
+        let scan = sample();
+        let html = render_seller_html(&scan, &crate::grade::grade(&scan), None);
+        assert!(
+            html.contains("Seller&#39;s condition report")
+                || html.contains("Seller's condition report")
+        );
+        assert!(html.contains("<svg") && html.contains("https://probe-pc.github.io/check#"));
+        let mut with_serial = scan.clone();
+        with_serial.identity.serial = Field::claimed(Some("PF0ABCDE".into()), "t");
+        let g = crate::grade::grade(&with_serial);
+        assert!(!render_seller_html(&with_serial, &g, None).contains("PF0ABCDE"));
+        assert!(render_html(&with_serial, &g, None).contains("PF0ABCDE"));
+        assert!(!html.contains("<script"));
     }
 
     #[test]

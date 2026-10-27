@@ -287,6 +287,47 @@ fn save_scan(path: String, scan: Scan) -> Result<(), String> {
     save(Path::new(&path), &scan)
 }
 
+/// The seller's report: the HTML report with a QR code, opened in the
+/// default browser afterwards so it can be printed to PDF.
+#[tauri::command]
+fn save_seller_report(
+    history: tauri::State<'_, History>,
+    path: String,
+    scan: Scan,
+    id: Option<i64>,
+) -> Result<(), String> {
+    let g = grade::grade(&scan);
+    let hands_on = id.and_then(|id| {
+        history
+            .with(|s| s.hands_on(id).map_err(|e| e.to_string()))
+            .ok()
+            .flatten()
+    });
+    let html = hwprobe::html_report::render_seller_html(&scan, &g, hands_on.as_ref());
+    fs::write(&path, html).map_err(|e| format!("{path}: {e}"))?;
+    // Saved either way; failing to open a browser is not worth an error.
+    let _ = tauri_plugin_opener::open_path(&path, None::<&str>);
+    Ok(())
+}
+
+/// Compare a seller's report link with a scan of this computer.
+#[tauri::command]
+fn check_seller_link(link: String, scan: Scan) -> Result<hwprobe::seller::Check, String> {
+    let seller = hwprobe::seller::Summary::from_link(&link)?;
+    let g = grade::grade(&scan);
+    let a = hwprobe::assess::assess(&scan, &g);
+    Ok(hwprobe::seller::compare(seller, &scan, &g, &a))
+}
+
+/// Open a web page in the default browser. Only https links are opened.
+#[tauri::command]
+fn open_link(url: String) -> Result<(), String> {
+    if !url.starts_with("https://") {
+        return Err("only https links can be opened".into());
+    }
+    tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn save_text_report(
     history: tauri::State<'_, History>,
@@ -480,6 +521,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let data = app.path().app_data_dir();
             let history = match &data {
@@ -519,6 +561,9 @@ pub fn run() {
             compare_stored,
             save_scan,
             save_text_report,
+            save_seller_report,
+            check_seller_link,
+            open_link,
             compare_with,
             save_hands_on_result,
             live_power,

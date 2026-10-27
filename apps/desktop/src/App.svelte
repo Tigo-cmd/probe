@@ -4,6 +4,7 @@
   import Report from './lib/Report.svelte';
   import HandsOn from './lib/HandsOn.svelte';
   import UpdateBanner from './lib/UpdateBanner.svelte';
+  import WipeGuide from './lib/WipeGuide.svelte';
   import {
     deleteStored,
     demoMode,
@@ -16,8 +17,14 @@
   } from './lib/api.js';
   import { scanFailure } from './lib/present.js';
 
-  /** @type {'home' | 'scanning' | 'report' | 'tests'} */
+  /** @type {'home' | 'scanning' | 'report' | 'tests' | 'wipe'} */
   let view = $state('home');
+  /** Where the wipe guide returns to. */
+  let wipeFrom = $state('home');
+  function openWipeGuide() {
+    wipeFrom = view;
+    view = 'wipe';
+  }
   let opened = $state(null);
   let origin = $state('');
   let error = $state('');
@@ -110,7 +117,9 @@
 
 <UpdateBanner busy={view === 'scanning'} />
 
-{#if view === 'scanning'}
+{#if view === 'wipe'}
+  <WipeGuide os={opened?.scan?.os ?? null} onback={() => (view = wipeFrom)} />
+{:else if view === 'scanning'}
   <Scanning asking={privilege?.can_elevate ? privilege.method : ''} />
 {:else if view === 'tests' && opened}
   <HandsOn {opened} onback={() => (view = 'report')} onsaved={(o) => (opened = o)} />
@@ -122,6 +131,7 @@
     onrescan={live && privilege?.can_elevate && !opened.scan.elevated ? () => scan({ full: true }) : null}
     {team}
     onhandson={() => (view = 'tests')}
+    onwipeguide={openWipeGuide}
   />
 {:else}
   <Home
@@ -136,6 +146,7 @@
     {team}
     onteamchange={(t) => (team = t)}
     onsynced={refreshHistory}
+    onwipeguide={openWipeGuide}
   />
 {/if}
 
