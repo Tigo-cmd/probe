@@ -17,6 +17,8 @@ export const TESTS = [
   { kind: 'storage', group: 'long', title: 'Drive read speed', icon: 'drive', minutes: 1, blurb: 'Times reading existing files. Read-only: nothing is written.' },
   { kind: 'charger', group: 'long', title: 'Charger', icon: 'plug', minutes: 1, blurb: 'Unplug and plug in again; checks it charges and how fast.' },
   { kind: 'battery', group: 'long', title: 'Battery drain', icon: 'battery', minutes: 10, blurb: 'Measures how fast the battery empties, unplugged, and estimates real running time.' },
+  { kind: 'memory', group: 'long', title: 'Memory (RAM)', icon: 'memory', minutes: 2, blurb: 'Fills free memory with patterns and reads them back to catch faulty RAM.' },
+  { kind: 'graphics', group: 'long', title: 'Graphics under load', icon: 'graphics', minutes: 1, blurb: 'Heavy 3D drawing for a minute to catch overheating, glitches and driver crashes.' },
 ];
 
 export const OUTCOMES = {
@@ -483,4 +485,52 @@ export function batteryResult(samples, fullMwh) {
   if (e.runtime_h === null) return result('battery', 'incomplete', 'The battery did not report enough to estimate running time', [], detail);
   const w = e.watts ? ` drawing about ${e.watts.toFixed(1)} W` : '';
   return result('battery', 'passed', `About ${hoursText(e.runtime_h)} on a full charge at light use${w}`, [], detail);
+}
+
+// ----------------------------------------------------------------- memory
+
+/** How much memory to test, in MB: about half of it, at most 2 GB. */
+export function memoryTarget(totalBytes) {
+  const totalMb = totalBytes ? totalBytes / (1024 * 1024) : 4096;
+  return Math.max(256, Math.min(2048, Math.floor((totalMb * 0.45) / 64) * 64));
+}
+
+/** `run`: { testedMb, totalMb, errors, examples, finished }. */
+export function memoryResult(run) {
+  const gb = (mb) => (mb / 1024).toFixed(1);
+  const detail = { ...run };
+  if (run.errors > 0) {
+    const n = run.errors;
+    return result(
+      'memory',
+      'problems',
+      `${n.toLocaleString()} ${n === 1 ? 'value' : 'values'} read back wrong: faulty memory`,
+      [`Memory test: ${n.toLocaleString()} ${n === 1 ? 'value' : 'values'} read back different from what was written. Faulty RAM causes crashes and corrupted files; ask for it to be replaced.`],
+      detail,
+    );
+  }
+  if (!run.finished) return result('memory', 'incomplete', 'The memory test was stopped early', [], detail);
+  if (run.testedMb < 256) return result('memory', 'incomplete', 'The system gave too little memory to test', [], detail);
+  const share = run.totalMb ? ` of ${gb(run.totalMb)} GB` : '';
+  return result('memory', 'passed', `No errors in ${gb(run.testedMb)} GB${share} checked with four patterns`, [], detail);
+}
+
+// --------------------------------------------------------------- graphics
+
+/** `run`: { perSecond: frames each second, glitches, lost, renderer, seconds }. */
+export function graphicsResult(run) {
+  const detail = { ...run };
+  if (run.unavailable) return result('graphics', 'incomplete', 'Graphics acceleration is not available to probe here', [], detail);
+  const problems = [];
+  if (run.lost) problems.push('The graphics driver crashed and reset during the test');
+  if (run.glitches > 0) problems.push(`${run.glitches} test ${run.glitches === 1 ? 'image' : 'images'} came back with wrong pixels: possible graphics memory fault`);
+  const early = median(run.perSecond.slice(2, 10));
+  const late = median(run.perSecond.slice(-10));
+  const drop = early && late !== null ? Math.max(0, 1 - late / early) : null;
+  if (drop !== null && drop > 0.3) problems.push(`Graphics slowed by ${Math.round(drop * 100)}% as it warmed up: likely overheating`);
+  detail.drop = drop;
+  if (problems.length) return result('graphics', 'problems', problems[0], problems, detail);
+  if (run.perSecond.length < 20) return result('graphics', 'incomplete', 'The graphics test was stopped early', [], detail);
+  const fps = Math.round(late ?? 0);
+  return result('graphics', 'passed', `Steady under load at about ${fps} frames a second, with no glitches`, [], detail);
 }

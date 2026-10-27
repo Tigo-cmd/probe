@@ -150,9 +150,9 @@ import {
 } from './handson.js';
 
 describe('the test list', () => {
-  it('has twelve tests in two groups, each kind once', () => {
-    expect(TESTS).toHaveLength(12);
-    expect(new Set(TESTS.map((t) => t.kind)).size).toBe(12);
+  it('has fourteen tests in two groups, each kind once', () => {
+    expect(TESTS).toHaveLength(14);
+    expect(new Set(TESTS.map((t) => t.kind)).size).toBe(14);
     expect(TESTS.every((t) => t.group === 'quick' || t.group === 'long')).toBe(true);
   });
 });
@@ -238,5 +238,45 @@ describe('battery drain', () => {
     expect(batteryResult(jumpy, 60_000).problems[0]).toMatch(/jumps/);
     expect(batteryResult(samples(2, 100), 60_000).outcome).toBe('incomplete');
     expect(hoursText(1.5)).toBe('1 h 30 min');
+  });
+});
+
+import { graphicsResult, memoryResult, memoryTarget } from './handson.js';
+
+describe('memory test', () => {
+  it('tests about half the memory, between 256 MB and 2 GB', () => {
+    expect(memoryTarget(16 * 1024 ** 3)).toBe(2048);
+    expect(memoryTarget(4 * 1024 ** 3)).toBe(1792);
+    expect(memoryTarget(null)).toBe(1792);
+    expect(memoryTarget(256 * 1024 ** 2)).toBe(256);
+  });
+  it('fails on any value read back wrong', () => {
+    const r = memoryResult({ testedMb: 2048, totalMb: 16000, errors: 3, examples: [], finished: true });
+    expect(r.outcome).toBe('problems');
+    expect(r.problems[0]).toContain('3 values');
+  });
+  it('passes a clean, finished run and says how much was checked', () => {
+    const r = memoryResult({ testedMb: 2048, totalMb: 16384, errors: 0, examples: [], finished: true });
+    expect(r.outcome).toBe('passed');
+    expect(r.summary).toContain('2.0 GB of 16.0 GB');
+  });
+  it('is incomplete when stopped early', () => {
+    expect(memoryResult({ testedMb: 2048, totalMb: 16384, errors: 0, finished: false }).outcome).toBe('incomplete');
+  });
+});
+
+describe('graphics test', () => {
+  const steady = Array(60).fill(58);
+  it('passes a steady run', () => {
+    expect(graphicsResult({ perSecond: steady, glitches: 0, lost: false }).outcome).toBe('passed');
+  });
+  it('catches overheating, glitches and driver crashes', () => {
+    const slowing = [...Array(30).fill(60), ...Array(30).fill(30)];
+    expect(graphicsResult({ perSecond: slowing, glitches: 0, lost: false }).summary).toContain('slowed by 50%');
+    expect(graphicsResult({ perSecond: steady, glitches: 2, lost: false }).outcome).toBe('problems');
+    expect(graphicsResult({ perSecond: steady.slice(0, 10), glitches: 0, lost: true }).summary).toContain('crashed');
+  });
+  it('says so when there is no graphics acceleration', () => {
+    expect(graphicsResult({ unavailable: true, perSecond: [] }).outcome).toBe('incomplete');
   });
 });

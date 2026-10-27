@@ -27,6 +27,8 @@ pub enum TestKind {
     Wireless,
     Ports,
     Physical,
+    Memory,
+    Graphics,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -96,6 +98,8 @@ pub fn kind_label(kind: TestKind) -> &'static str {
         TestKind::Wireless => "Wi-Fi and Bluetooth",
         TestKind::Ports => "USB ports",
         TestKind::Physical => "Physical inspection",
+        TestKind::Memory => "Memory (RAM)",
+        TestKind::Graphics => "Graphics under load",
     }
 }
 

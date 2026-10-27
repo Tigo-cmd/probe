@@ -16,6 +16,8 @@
   import StorageTest from './tests/StorageTest.svelte';
   import ChargerTest from './tests/ChargerTest.svelte';
   import BatteryTest from './tests/BatteryTest.svelte';
+  import MemoryTest from './tests/MemoryTest.svelte';
+  import GraphicsTest from './tests/GraphicsTest.svelte';
   import { saveHandsOnResult } from './api.js';
   import { OUTCOMES, TESTS } from './handson.js';
   import { machineName } from './present.js';
@@ -56,16 +58,18 @@
     storage: StorageTest,
     charger: ChargerTest,
     battery: BatteryTest,
+    memory: MemoryTest,
+    graphics: GraphicsTest,
   };
   const GROUPS = [
     { id: 'quick', title: 'Quick checks', blurb: 'About ten minutes for all eight.' },
-    { id: 'long', title: 'Longer checks', blurb: 'Run these while you talk to the seller. The battery test needs ten minutes unplugged.' },
+    { id: 'long', title: 'Longer checks', blurb: 'Run these while you talk to the seller. The battery test needs ten minutes unplugged; the memory test about two.' },
   ];
   const Running = $derived(running ? COMPONENTS[running] : null);
 </script>
 
 {#if Running}
-  <Running os={opened.scan.os} kind={opened.assessment.specs.storage.kind} oncomplete={complete} oncancel={() => (running = null)} />
+  <Running os={opened.scan.os} kind={opened.assessment.specs.storage.kind} memoryBytes={opened.scan.memory?.total_bytes?.value ?? null} oncomplete={complete} oncancel={() => (running = null)} />
 {:else}
   <div class="toolbar">
     <div class="toolbar-inner">

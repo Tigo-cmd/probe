@@ -50,7 +50,7 @@ pub struct HandsOnSummary {
     pub not_run: Vec<TestKind>,
 }
 
-const ALL_TESTS: [TestKind; 12] = [
+const ALL_TESTS: [TestKind; 14] = [
     TestKind::Keyboard,
     TestKind::Pointer,
     TestKind::Screen,
@@ -63,6 +63,8 @@ const ALL_TESTS: [TestKind; 12] = [
     TestKind::Wireless,
     TestKind::Ports,
     TestKind::Physical,
+    TestKind::Memory,
+    TestKind::Graphics,
 ];
 
 // --------------------------------------------------------------- condition
@@ -1467,6 +1469,7 @@ fn test_matters(kind: TestKind, u: UseCase) -> bool {
         TestKind::Speakers => !matches!(u, UseCase::Programming | UseCase::Creative),
         TestKind::Camera => matches!(u, UseCase::Work | UseCase::Study | UseCase::Everyday),
         TestKind::Battery | TestKind::Charger => !matches!(u, UseCase::Gaming | UseCase::Video),
+        TestKind::Graphics => matches!(u, UseCase::Gaming | UseCase::Video | UseCase::Creative),
         _ => true,
     }
 }
@@ -1886,7 +1889,7 @@ mod tests {
             .any(|t| t.contains("Keyboard: Key K did not register")));
         let summary = a.hands_on.unwrap();
         assert_eq!((summary.finished, summary.passed), (1, 0));
-        assert_eq!(summary.not_run.len(), 11);
+        assert_eq!(summary.not_run.len(), 13);
     }
 
     #[test]
