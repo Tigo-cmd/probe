@@ -35,6 +35,7 @@ function setupDownloads() {
   document.querySelectorAll('[data-releases]').forEach((a) => (a.href = `${REPO}/releases`));
   document.querySelectorAll('[data-repo]').forEach((a) => (a.href = REPO));
   document.querySelectorAll('[data-repo-issues]').forEach((a) => (a.href = `${REPO}/issues`));
+  checkRelease();
   if (!os) return;
   document.querySelector(`.dl[data-os="${os}"]`)?.classList.add('yours');
   // The main buttons download straight away for the visitor's system;
@@ -89,6 +90,33 @@ function setupCopy() {
       }
     }),
   );
+}
+
+/**
+ * Before the first release exists, every download link would be a GitHub
+ * 404. Ask GitHub which files the latest release has, and send any link to a
+ * missing file to the download section instead, with a short notice.
+ */
+async function checkRelease() {
+  let names;
+  try {
+    const r = await fetch('https://api.github.com/repos/Tigo-cmd/probe/releases/latest', {
+      headers: { Accept: 'application/vnd.github+json' },
+    });
+    if (r.status === 404) names = new Set();
+    else if (!r.ok) return; // rate-limited or down: keep the direct links
+    else names = new Set(((await r.json()).assets ?? []).map((a) => a.name));
+  } catch {
+    return;
+  }
+  let missing = false;
+  document.querySelectorAll('a[href^="' + LATEST + '"]').forEach((a) => {
+    if (names.has(a.href.slice(LATEST.length))) return;
+    missing = true;
+    a.href = '#download';
+    a.removeAttribute('download');
+  });
+  if (missing) document.querySelectorAll('[data-dl-pending]').forEach((p) => (p.hidden = false));
 }
 
 // ------------------------------------------------------------- reveals

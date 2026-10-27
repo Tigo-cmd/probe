@@ -1495,6 +1495,16 @@ section.dark > .stairs {
 
 /* ------------------------------------------------------------ mobile */
 
+.dl-pending {
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border-inline: 0 !important;
+  background: var(--mint);
+  color: var(--mint-ink);
+  font-size: 15px;
+}
+
 /* ------------------------------------------------------------- donate */
 
 .donate-hero {
