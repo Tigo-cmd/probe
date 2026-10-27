@@ -1,7 +1,10 @@
 # probe
 
-Used-laptop condition and encumbrance verification. A scan runs on the laptop
-being inspected, offline, from a single binary on a USB stick, and produces a
+Used-computer condition and encumbrance verification for laptops, desktops and
+mini PCs. Website and downloads: **https://probe-pc.github.io** (source in
+[probe-pc/probe-pc.github.io](https://github.com/probe-pc/probe-pc.github.io)).
+
+A scan runs on the computer being inspected, offline, from a single binary on a USB stick, and produces a
 graded report that separates what was **measured** from what the firmware
 merely **claims** and from what software **cannot assess**.
 

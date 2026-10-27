@@ -1,12 +1,13 @@
-name: Publish site
+name: Publish site redirect
 
-# Publishes the landing page in apps/site to GitHub Pages. The site is
-# static, so it is uploaded as it is, with no build step.
+# The website now lives in probe-pc/probe-pc.github.io and is published at
+# https://probe-pc.github.io. This keeps the old address,
+# tigo-cmd.github.io/probe, working by sending every page there.
 
 on:
   push:
-    branches: [claude/jolly-rubin-5n5nal, claude/new-session-pk9lf7, main]
-    paths: [apps/site/**, .github/workflows/pages.yml]
+    branches: [main]
+    paths: [.github/pages-redirect/**, .github/workflows/pages.yml]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +15,6 @@ permissions:
   pages: write
   id-token: write
 
-# One deploy at a time; a newer push replaces a queued one.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -30,6 +30,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/site
+          path: .github/pages-redirect
       - id: deployment
         uses: actions/deploy-pages@v4
