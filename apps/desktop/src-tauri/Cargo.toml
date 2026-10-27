@@ -1,7 +1,7 @@
 [package]
 name = "probe-desktop"
 description = "Desktop shell for hwprobe"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 license = "UNLICENSED"
 rust-version = "1.90"
