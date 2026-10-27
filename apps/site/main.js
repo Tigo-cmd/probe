@@ -3,7 +3,11 @@
 // No dependencies. Everything degrades to a static page without script or
 // with reduced motion.
 
-const REPO = 'https://github.com/Tigo-cmd/probe';
+// The one place that names the GitHub repository. Change it here if the
+// repository moves (for example into an organisation).
+const REPO_PATH = 'Tigo-cmd/probe';
+const REPO = `https://github.com/${REPO_PATH}`;
+const API = `https://api.github.com/repos/${REPO_PATH}`;
 const LATEST = `${REPO}/releases/latest/download/`;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -55,7 +59,7 @@ async function setupStars() {
   const slots = document.querySelectorAll('[data-stars]');
   if (!slots.length) return;
   try {
-    const r = await fetch('https://api.github.com/repos/Tigo-cmd/probe', { headers: { Accept: 'application/vnd.github+json' } });
+    const r = await fetch(API, { headers: { Accept: 'application/vnd.github+json' } });
     if (!r.ok) return;
     const n = (await r.json()).stargazers_count;
     if (typeof n !== 'number') return;
@@ -100,7 +104,7 @@ function setupCopy() {
 async function checkRelease() {
   let names;
   try {
-    const r = await fetch('https://api.github.com/repos/Tigo-cmd/probe/releases/latest', {
+    const r = await fetch(`${API}/releases/latest`, {
       headers: { Accept: 'application/vnd.github+json' },
     });
     if (r.status === 404) names = new Set();
