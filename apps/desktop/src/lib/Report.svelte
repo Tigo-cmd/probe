@@ -12,6 +12,8 @@
   import VerdictBadge from './VerdictBadge.svelte';
   import Windows11Card from './Windows11Card.svelte';
   import SellerCard from './SellerCard.svelte';
+  import { warrantyLink } from './warranty.js';
+  import { openLink } from './api.js';
   import {
     AXES,
     axisLabel,
@@ -85,6 +87,23 @@
     try {
       const r = await fn();
       if (r) status = done(r);
+    } catch (e) {
+      failure = String(e);
+    }
+  }
+  const warranty = $derived(warrantyLink(scan.identity));
+  let warrantyNote = $state('');
+  async function checkWarranty() {
+    if (!warranty.prefilled) {
+      try {
+        await navigator.clipboard.writeText(warranty.serial);
+        warrantyNote = `Serial ${warranty.serial} copied: paste it on ${warranty.maker}'s page.`;
+      } catch {
+        warrantyNote = `Enter serial ${warranty.serial} on ${warranty.maker}'s page.`;
+      }
+    }
+    try {
+      await openLink(warranty.url);
     } catch (e) {
       failure = String(e);
     }
@@ -217,6 +236,12 @@
         <p class="faint small">
           Scanned {scannedAt(scan.started_at)} on {osName(scan.os)} · {scan.elevated ? 'full access' : 'limited access'}
         </p>
+        {#if warranty}
+          <p class="warranty small">
+            <button class="plain" onclick={checkWarranty}><Icon name="shield" size={14} /> Check the {warranty.maker} warranty</button>
+            {#if warrantyNote}<span class="faint">{warrantyNote}</span>{/if}
+          </p>
+        {/if}
       </div>
     </div>
 
@@ -685,6 +710,19 @@
     color: var(--accent);
     font-weight: 600;
     font-size: 14px;
+  }
+  .warranty {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    align-items: center;
+  }
+  .warranty .plain {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    font-size: 13px;
   }
   .areas {
     display: grid;
